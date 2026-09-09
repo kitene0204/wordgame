@@ -35,6 +35,17 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// Enable CORS for iframe and external requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Vocabulary and Google Sheet State
 function getSubjectCounts(vocabList: VocabItem[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -588,11 +599,11 @@ io.on('connection', (socket: Socket) => {
 });
 
 // REST API
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/api/health/'], (req, res) => {
   res.json({ status: 'ok', activeRooms: rooms.size, wordCount: activeVocabList.length });
 });
 
-app.get('/api/sheet/status', (req, res) => {
+app.get(['/api/sheet/status', '/api/sheet/status/'], (req, res) => {
   res.json(sheetStatus);
 });
 
@@ -686,7 +697,7 @@ function parseSubjectSemesterKey(key: string): { subject: string; semester?: '1í
   return { subject: key };
 }
 
-app.post('/api/sheet/sync', async (req, res) => {
+app.post(['/api/sheet/sync', '/api/sheet/sync/'], async (req, res) => {
   try {
     const { sheetUrls, subject, key, sheetUrl, semester } = req.body;
     const errors: Record<string, string> = {};
@@ -806,7 +817,7 @@ app.post('/api/sheet/sync', async (req, res) => {
   }
 });
 
-app.post('/api/sheet/refresh', async (req, res) => {
+app.post(['/api/sheet/refresh', '/api/sheet/refresh/'], async (req, res) => {
   try {
     const { updated, errors } = await refreshRegisteredSheets();
     saveConfigToDisk();
@@ -822,7 +833,7 @@ app.post('/api/sheet/refresh', async (req, res) => {
   }
 });
 
-app.post('/api/sheet/reset', (req, res) => {
+app.post(['/api/sheet/reset', '/api/sheet/reset/'], (req, res) => {
   const { key, subject } = req.body || {};
 
   if (key && typeof key === 'string') {

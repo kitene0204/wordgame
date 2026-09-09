@@ -61,29 +61,133 @@ export async function fetchSheetStatus(): Promise<SheetSyncStatus> {
   return safeParseResponse(res);
 }
 
+function parseSubjectSemesterKey(key: string): { subject: string; semester?: '1학기' | '2학기' } {
+  if (key.includes('_2학기')) {
+    return { subject: key.replace('_2학기', ''), semester: '2학기' };
+  }
+  if (key.includes('_1학기')) {
+    return { subject: key.replace('_1학기', ''), semester: '1학기' };
+  }
+  return { subject: key };
+}
+
 export async function syncMultipleGoogleSheets(
   sheetUrls: Record<string, string>
 ): Promise<{ sheetStatus: SheetSyncStatus; errors?: Record<string, string> }> {
-  const res = await fetchWithRetry('/api/sheet/sync', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sheetUrls }),
-  });
-  const data = await safeParseResponse(res);
-  return { sheetStatus: data.sheetStatus, errors: data.errors };
+  try {
+    const res = await fetchWithRetry('/api/sheet/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sheetUrls }),
+    });
+    const data = await safeParseResponse(res);
+    return { sheetStatus: data.sheetStatus, errors: data.errors };
+  } catch (err: any) {
+    console.warn('Server multi-sync notice, falling back:', err);
+    // If server is unavailable, try to at least parse any valid sheets locally
+    const { fetchGoogleSheetVocab } = await import('../utils/googleSheetSync');
+    const currentUrls = getLocalSheetUrls() || {};
+    const errors: Record<string, string> = {};
+    let totalCount = 0;
+    const semCounts: Record<string, number> = {};
+    const subjCounts: Record<string, number> = {};
+
+    for (const [k, u] of Object.entries(sheetUrls)) {
+      if (!u || !u.trim()) continue;
+      currentUrls[k] = u.trim();
+      try {
+        const parsed = parseSubjectSemesterKey(k);
+        const res = await fetchGoogleSheetVocab(u.trim(), parsed.subject, parsed.semester);
+        semCounts[k] = res.items.length;
+        subjCounts[parsed.subject] = (subjCounts[parsed.subject] || 0) + res.items.length;
+        totalCount += res.items.length;
+      } catch (e: any) {
+        errors[k] = e.message || '시트 불러오기 실패';
+      }
+    }
+    saveLocalSheetUrls(currentUrls);
+
+    const fallbackStatus: SheetSyncStatus = {
+      isCustomSheet: totalCount > 0,
+      sheetUrl: Object.values(currentUrls).find(Boolean) || '',
+      sheetUrls: currentUrls,
+      lastSyncedAt: new Date().toISOString(),
+      wordCount: totalCount,
+      subjectCounts: subjCounts,
+      subjectSemesterCounts: semCounts,
+      availableSubjects: ['전체', '국어', '수학', '사회', '영어'],
+    };
+
+    return { sheetStatus: fallbackStatus, errors: Object.keys(errors).length > 0 ? errors : undefined };
+  }
 }
 
 export async function syncSingleSubjectSheet(
   keyOrSubject: string,
   sheetUrl: string
 ): Promise<SheetSyncStatus> {
-  const res = await fetchWithRetry('/api/sheet/sync', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key: keyOrSubject, subject: keyOrSubject, sheetUrl }),
-  });
-  const data = await safeParseResponse(res);
-  return data.sheetStatus;
+  const urlTrimmed = sheetUrl ? sheetUrl.trim() : '';
+
+  try {
+    const res = await fetchWithRetry('/api/sheet/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: keyOrSubject, subject: keyOrSubject, sheetUrl: urlTrimmed }),
+    });
+    const data = await safeParseResponse(res);
+    return data.sheetStatus;
+  } catch (err: any) {
+    // If the error message came from Google Sheet itself (e.g. permission/404 on Google), show it!
+    if (err.message && err.message.includes('공유 권한')) {
+      throw err;
+    }
+
+    // Direct browser fallback when server endpoint is unavailable or restarted
+    if (urlTrimmed) {
+      try {
+        const { fetchGoogleSheetVocab } = await import('../utils/googleSheetSync');
+        const parsed = parseSubjectSemesterKey(keyOrSubject);
+        const res = await fetchGoogleSheetVocab(urlTrimmed, parsed.subject, parsed.semester);
+        if (!res.items || res.items.length === 0) {
+          throw new Error('구글 시트에 유효한 단어 데이터가 없습니다.');
+        }
+
+        const currentUrls = getLocalSheetUrls() || {};
+        currentUrls[keyOrSubject] = urlTrimmed;
+        saveLocalSheetUrls(currentUrls);
+
+        const currentStatus = await fetchSheetStatus().catch(() => null);
+        const fallbackStatus: SheetSyncStatus = {
+          isCustomSheet: true,
+          sheetUrl: urlTrimmed,
+          sheetUrls: { ...(currentStatus?.sheetUrls || {}), [keyOrSubject]: urlTrimmed },
+          lastSyncedAt: new Date().toISOString(),
+          wordCount: (currentStatus?.wordCount || 0) + res.items.length,
+          subjectCounts: {
+            ...(currentStatus?.subjectCounts || {}),
+            [parsed.subject]: res.items.length,
+          },
+          subjectSemesterCounts: {
+            ...(currentStatus?.subjectSemesterCounts || {}),
+            [keyOrSubject]: res.items.length,
+          },
+          availableSubjects: ['전체', '국어', '수학', '사회', '영어'],
+        };
+
+        // Try syncing to server again in background asynchronously
+        fetch('/api/sheet/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: keyOrSubject, subject: keyOrSubject, sheetUrl: urlTrimmed }),
+        }).catch(() => {});
+
+        return fallbackStatus;
+      } catch (clientErr: any) {
+        throw clientErr;
+      }
+    }
+    throw err;
+  }
 }
 
 export async function syncGoogleSheet(sheetUrl: string): Promise<SheetSyncStatus> {
