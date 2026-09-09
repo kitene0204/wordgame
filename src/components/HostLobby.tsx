@@ -14,6 +14,8 @@ interface HostLobbyProps {
   onStartGame: () => void;
   onOpenSheetModal?: () => void;
   sheetStatus?: SheetSyncStatus | null;
+  isSyncing?: boolean;
+  onQuickRefresh?: () => void;
 }
 
 export const HostLobby: React.FC<HostLobbyProps> = ({
@@ -27,6 +29,8 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
   onStartGame,
   onOpenSheetModal,
   sheetStatus,
+  isSyncing = false,
+  onQuickRefresh,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPin, setCopiedPin] = useState(false);
@@ -129,15 +133,28 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-slate-600">과목 선택</span>
-                  {onOpenSheetModal && (
-                    <button
-                      onClick={onOpenSheetModal}
-                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
-                    >
-                      <FileSpreadsheet size={13} />
-                      {sheetStatus?.isCustomSheet ? '시트 연동 중 (수정/새로고침)' : '구글 시트 연동하기'}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {sheetStatus?.isCustomSheet && onQuickRefresh && (
+                      <button
+                        onClick={() => onQuickRefresh()}
+                        disabled={isSyncing}
+                        title="구글 시트 즉시 새로고침"
+                        className="text-xs font-bold px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw size={11} className={isSyncing ? 'animate-spin' : ''} />
+                        {isSyncing ? '동기화 중...' : '시트 새로고침'}
+                      </button>
+                    )}
+                    {onOpenSheetModal && (
+                      <button
+                        onClick={onOpenSheetModal}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
+                      >
+                        <FileSpreadsheet size={13} />
+                        {sheetStatus?.isCustomSheet ? '시트 설정' : '구글 시트 연동'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-5 gap-1.5">
                   {(['전체', '국어', '수학', '사회', '영어'] as SubjectType[]).map((subj) => (

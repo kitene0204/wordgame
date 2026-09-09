@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Home, Copy, Check, Users, Sparkles, FileSpreadsheet } from 'lucide-react';
+import { Volume2, VolumeX, Home, Copy, Check, Users, Sparkles, FileSpreadsheet, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { playSound, toggleMute, getMuteState } from '../utils/audio';
 import { SheetSyncStatus } from '../types';
 
@@ -10,6 +10,9 @@ interface NavbarProps {
   playerCount?: number;
   onOpenSheetModal?: () => void;
   sheetStatus?: SheetSyncStatus | null;
+  isSyncing?: boolean;
+  onQuickRefresh?: () => void;
+  lastSyncedText?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,6 +22,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   playerCount,
   onOpenSheetModal,
   sheetStatus,
+  isSyncing = false,
+  onQuickRefresh,
+  lastSyncedText,
 }) => {
   const [muted, setMuted] = useState(getMuteState());
   const [copied, setCopied] = useState(false);
@@ -95,33 +101,68 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          {/* Google Sheet Sync Button */}
+          {/* Google Sheet Sync Button & Quick Refresh */}
           {onOpenSheetModal && (
-            <button
-              onClick={() => {
-                playSound('click');
-                onOpenSheetModal();
-              }}
-              title="구글 시트 어휘 목록 연동 설정"
-              className={`px-3 py-2 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-extrabold shadow-2xs ${
-                sheetStatus?.isCustomSheet
-                  ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border-emerald-400'
-                  : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-300'
-              }`}
-            >
-              <FileSpreadsheet
-                size={16}
-                className={sheetStatus?.isCustomSheet ? 'text-emerald-700' : 'text-emerald-600'}
-              />
-              <span className="hidden sm:inline">
-                {sheetStatus?.isCustomSheet
-                  ? `시트 연동됨 (${sheetStatus.wordCount}개)`
-                  : '📊 구글 시트 연동'}
-              </span>
-              {sheetStatus?.isCustomSheet && (
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border-2 border-slate-200">
+              <button
+                onClick={() => {
+                  playSound('click');
+                  onOpenSheetModal();
+                }}
+                title={
+                  isSyncing
+                    ? '구글 시트 동기화 진행 중입니다'
+                    : sheetStatus?.isCustomSheet
+                    ? `구글 시트 연동 완료 (${sheetStatus.wordCount}개 단어) - 클릭하여 설정 열기`
+                    : '구글 시트 어휘 목록 연동 설정'
+                }
+                className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-black ${
+                  isSyncing
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300 animate-pulse'
+                    : sheetStatus?.isCustomSheet
+                    ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-400'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300'
+                }`}
+              >
+                {isSyncing ? (
+                  <>
+                    <RefreshCw size={14} className="text-amber-600 animate-spin shrink-0" />
+                    <span>동기화 중...</span>
+                  </>
+                ) : sheetStatus?.isCustomSheet ? (
+                  <>
+                    <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                    <span className="hidden sm:inline">동기화 완료</span>
+                    <span className="bg-emerald-200/80 text-emerald-900 text-[11px] px-1.5 py-0.2 rounded-md font-extrabold">
+                      {sheetStatus.wordCount}단어
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  </>
+                ) : (
+                  <>
+                    <FileSpreadsheet size={14} className="text-emerald-600 shrink-0" />
+                    <span className="hidden sm:inline">📊 시트 연동</span>
+                  </>
+                )}
+              </button>
+
+              {sheetStatus?.isCustomSheet && onQuickRefresh && (
+                <button
+                  onClick={() => {
+                    playSound('click');
+                    onQuickRefresh();
+                  }}
+                  disabled={isSyncing}
+                  title={isSyncing ? '동기화 진행 중...' : '지금 즉시 시트 새로고침 (수시 동기화)'}
+                  className="p-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-700 border border-slate-200 hover:border-emerald-300 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  <RefreshCw
+                    size={14}
+                    className={isSyncing ? 'animate-spin text-amber-600' : 'hover:rotate-180 transition-transform duration-300'}
+                  />
+                </button>
               )}
-            </button>
+            </div>
           )}
 
           {/* Sound Toggle */}

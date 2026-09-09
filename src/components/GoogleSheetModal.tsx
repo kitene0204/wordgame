@@ -85,6 +85,10 @@ interface GoogleSheetModalProps {
   onSyncSingle?: (keyOrSubject: string, sheetUrl: string) => Promise<void>;
   onReset: (keyOrSubject?: string) => Promise<void>;
   isLoading: boolean;
+  isSyncing?: boolean;
+  onQuickRefresh?: () => Promise<void>;
+  autoSyncEnabled?: boolean;
+  onToggleAutoSync?: () => void;
 }
 
 export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
@@ -95,6 +99,10 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   onSyncSingle,
   onReset,
   isLoading,
+  isSyncing = false,
+  onQuickRefresh,
+  autoSyncEnabled = true,
+  onToggleAutoSync,
 }) => {
   const [urls, setUrls] = useState<Record<string, string>>({
     국어_1학기: '',
@@ -463,18 +471,25 @@ adventure\t모험, 신나는 경험\t[ədˈventʃər]\tThey went on a wild adven
             <>
               {/* Overall Status Banner */}
               <div
-                className={`p-3.5 sm:p-4 rounded-2xl border-2 flex flex-wrap items-center justify-between gap-3 ${
-                  sheetStatus?.isCustomSheet
+                className={`p-3.5 sm:p-4 rounded-2xl border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  isSyncing
+                    ? 'bg-amber-50 border-amber-300 text-amber-950 animate-pulse'
+                    : sheetStatus?.isCustomSheet
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
                     : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
               >
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 font-black text-sm sm:text-base">
-                    {sheetStatus?.isCustomSheet ? (
+                  <div className="flex flex-wrap items-center gap-2 font-black text-sm sm:text-base">
+                    {isSyncing ? (
+                      <>
+                        <RefreshCw size={18} className="text-amber-600 animate-spin shrink-0" />
+                        <span>구글 시트 어휘 수시 동기화 중...</span>
+                      </>
+                    ) : sheetStatus?.isCustomSheet ? (
                       <>
                         <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
-                        <span>선생님 구글 시트 연동 중!</span>
+                        <span>선생님 구글 시트 동기화 완료!</span>
                         <span className="text-xs bg-emerald-200 text-emerald-900 px-2.5 py-0.5 rounded-full font-bold">
                           총 {sheetStatus.wordCount}개 어휘
                         </span>
@@ -488,20 +503,49 @@ adventure\t모험, 신나는 경험\t[ədˈventʃər]\tThey went on a wild adven
                   </div>
                   <p className="text-xs opacity-80">
                     {sheetStatus?.lastSyncedAt
-                      ? `최근 동기화: ${new Date(sheetStatus.lastSyncedAt).toLocaleTimeString('ko-KR')} · 링크가 등록되지 않은 과목/학기는 기본 내장 단어가 안전하게 출제됩니다.`
+                      ? `최근 동기화: ${new Date(sheetStatus.lastSyncedAt).toLocaleTimeString('ko-KR')} · 수시로 시트가 업데이트되면 퀴즈에 즉시 반영됩니다.`
                       : '과목별로 1학기/2학기 시트 링크를 등록하고 [모든 시트 한 번에 동기화하기]를 눌러주세요.'}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 pt-1 sm:pt-0">
+                  {/* Quick Refresh Button */}
+                  {sheetStatus?.isCustomSheet && onQuickRefresh && (
+                    <button
+                      onClick={() => onQuickRefresh()}
+                      disabled={isSyncing || isLoading}
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95 disabled:opacity-50"
+                    >
+                      <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
+                      지금 즉시 새로고침
+                    </button>
+                  )}
+
+                  {/* Auto-Sync Toggle */}
+                  {sheetStatus?.isCustomSheet && onToggleAutoSync && (
+                    <button
+                      onClick={onToggleAutoSync}
+                      title="3분마다 백그라운드에서 구글 시트를 자동으로 최신화합니다"
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                        autoSyncEnabled
+                          ? 'bg-sky-100 hover:bg-sky-200 text-sky-800 border-sky-300'
+                          : 'bg-white hover:bg-slate-100 text-slate-500 border-slate-300'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${autoSyncEnabled ? 'bg-sky-500 animate-pulse' : 'bg-slate-400'}`} />
+                      수시 자동 동기화 {autoSyncEnabled ? 'ON' : 'OFF'}
+                    </button>
+                  )}
+
+                  {/* Reset Button */}
                   {sheetStatus?.isCustomSheet && (
                     <button
                       onClick={() => handleResetTarget()}
-                      disabled={isLoading}
+                      disabled={isLoading || isSyncing}
                       className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
                     >
                       <RotateCcw size={13} />
-                      전체 기본 단어로 초기화
+                      전체 초기화
                     </button>
                   )}
                 </div>

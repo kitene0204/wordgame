@@ -31,7 +31,9 @@ import {
   syncMultipleGoogleSheets,
   syncSingleSubjectSheet,
   resetGoogleSheet,
+  refreshGoogleSheets,
 } from './services/sheetService';
+import { RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function App() {
   const [initialRoomCode, setInitialRoomCode] = useState<string>('');
@@ -45,6 +47,85 @@ export default function App() {
   const [sheetStatus, setSheetStatus] = useState<SheetSyncStatus | null>(null);
   const [isSheetModalOpen, setIsSheetModalOpen] = useState(false);
   const [isSheetLoading, setIsSheetLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [syncToast, setSyncToast] = useState<{
+    type: 'syncing' | 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  // Quick refresh logic with status feedback
+  const handleQuickRefresh = async (silent = false) => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+
+    if (!silent) {
+      setSyncToast({
+        type: 'syncing',
+        message: '구글 시트 최신 어휘 동기화 중...',
+      });
+    }
+
+    try {
+      const data = await refreshGoogleSheets();
+      setSheetStatus(data.sheetStatus);
+
+      if (!silent || (data.updated && data.updated > 0)) {
+        setSyncToast({
+          type: 'success',
+          message: `동기화 완료! 총 ${data.sheetStatus.wordCount}개 최신 어휘가 반영되었습니다.`,
+        });
+        setTimeout(() => {
+          setSyncToast((prev) => (prev?.type === 'success' ? null : prev));
+        }, 3000);
+      } else {
+        setSyncToast(null);
+      }
+    } catch (err: any) {
+      console.error('Quick refresh failed:', err);
+      if (!silent) {
+        setSyncToast({
+          type: 'error',
+          message: `동기화 실패: ${err.message || '네트워크 오류'}`,
+        });
+        setTimeout(() => {
+          setSyncToast((prev) => (prev?.type === 'error' ? null : prev));
+        }, 4000);
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Periodic Auto-Sync (every 3 minutes when custom sheet is active)
+  useEffect(() => {
+    if (!autoSyncEnabled || !sheetStatus?.isCustomSheet) return;
+
+    const intervalId = setInterval(() => {
+      console.log('⏰ [수시 자동 동기화] 구글 시트 최신 어휘 갱신 점검');
+      handleQuickRefresh(true);
+    }, 180000); // 3 minutes
+
+    return () => clearInterval(intervalId);
+  }, [autoSyncEnabled, sheetStatus?.isCustomSheet]);
+
+  // Auto-sync when user returns to this tab (window focus)
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (sheetStatus?.isCustomSheet && autoSyncEnabled) {
+        const lastSync = sheetStatus.lastSyncedAt ? new Date(sheetStatus.lastSyncedAt).getTime() : 0;
+        const now = Date.now();
+        // If more than 30 seconds since last sync, auto-refresh
+        if (now - lastSync > 30000) {
+          console.log('👀 [화면 복귀 자동 동기화] 탭 활성화 감지 -> 시트 최신화 확인');
+          handleQuickRefresh(false);
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    return () => window.removeEventListener('focus', handleWindowFocus);
+  }, [sheetStatus?.isCustomSheet, sheetStatus?.lastSyncedAt, autoSyncEnabled]);
 
   // Parse URL query parameter (e.g. ?room=482910)
   useEffect(() => {
@@ -177,6 +258,32 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-jua select-none">
+      {/* Top Floating Sync Notification Toast */}
+      {syncToast && (
+        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 transition-all pointer-events-auto max-w-md w-[90%] sm:w-auto animate-bounce-subtle">
+          <div
+            className={`px-4 py-2.5 rounded-2xl shadow-xl border-2 flex items-center gap-2.5 text-sm font-black ${
+              syncToast.type === 'syncing'
+                ? 'bg-amber-100 border-amber-400 text-amber-950'
+                : syncToast.type === 'success'
+                ? 'bg-emerald-100 border-emerald-400 text-emerald-950'
+                : 'bg-rose-100 border-rose-400 text-rose-950'
+            }`}
+          >
+            {syncToast.type === 'syncing' && (
+              <RefreshCw size={18} className="animate-spin text-amber-600 shrink-0" />
+            )}
+            {syncToast.type === 'success' && (
+              <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+            )}
+            {syncToast.type === 'error' && (
+              <AlertCircle size={18} className="text-rose-600 shrink-0" />
+            )}
+            <span>{syncToast.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Top Navigation */}
       <Navbar
         roomCode={roomState?.roomCode}
@@ -185,6 +292,8 @@ export default function App() {
         onGoHome={inMultiplayer || soloConfig ? handleGoHome : undefined}
         onOpenSheetModal={() => setIsSheetModalOpen(true)}
         sheetStatus={sheetStatus}
+        isSyncing={isSyncing}
+        onQuickRefresh={() => handleQuickRefresh(false)}
       />
 
       {/* Main Content Area */}
@@ -216,6 +325,8 @@ export default function App() {
                   onStartGame={startGame}
                   onOpenSheetModal={() => setIsSheetModalOpen(true)}
                   sheetStatus={sheetStatus}
+                  isSyncing={isSyncing}
+                  onQuickRefresh={() => handleQuickRefresh(false)}
                 />
               ) : (
                 <StudentLobby
@@ -325,6 +436,10 @@ export default function App() {
         onSyncSingle={handleSyncSingleSubject}
         onReset={handleResetSheet}
         isLoading={isSheetLoading}
+        isSyncing={isSyncing}
+        onQuickRefresh={() => handleQuickRefresh(false)}
+        autoSyncEnabled={autoSyncEnabled}
+        onToggleAutoSync={() => setAutoSyncEnabled((prev) => !prev)}
       />
     </div>
   );

@@ -50,6 +50,22 @@ export async function syncGoogleSheet(sheetUrl: string): Promise<SheetSyncStatus
   return data.sheetStatus;
 }
 
+export async function refreshGoogleSheets(): Promise<{
+  sheetStatus: SheetSyncStatus;
+  updated: number;
+  errors?: Record<string, string>;
+}> {
+  const res = await fetch('/api/sheet/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || '시트 새로고침에 실패했습니다.');
+  }
+  return { sheetStatus: data.sheetStatus, updated: data.updated, errors: data.errors };
+}
+
 export async function resetGoogleSheet(keyOrSubject?: string): Promise<SheetSyncStatus> {
   const res = await fetch('/api/sheet/reset', {
     method: 'POST',

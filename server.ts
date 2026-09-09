@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { Server, Socket } from 'socket.io';
 import { createServer as createViteServer } from 'vite';
 import { generateQuizQuestions } from './src/utils/quizGenerator';
@@ -595,6 +596,59 @@ app.get('/api/sheet/status', (req, res) => {
   res.json(sheetStatus);
 });
 
+const CONFIG_FILE_PATH = path.join(process.cwd(), 'sheet-config.json');
+
+function saveConfigToDisk() {
+  try {
+    fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(sheetUrlsByKey, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Failed to save sheet-config.json:', err);
+  }
+}
+
+async function refreshRegisteredSheets(): Promise<{ updated: number; errors: Record<string, string> }> {
+  const errors: Record<string, string> = {};
+  let updated = 0;
+
+  for (const [k, rawUrl] of Object.entries(sheetUrlsByKey)) {
+    const url = typeof rawUrl === 'string' ? rawUrl.trim() : '';
+    if (!url) continue;
+
+    try {
+      const { subject: parsedSubj, semester: parsedSem } = parseSubjectSemesterKey(k);
+      const result = await fetchGoogleSheetVocab(url, parsedSubj, parsedSem);
+      customVocabsByKey[k] = result.items.map((it) => ({
+        ...it,
+        subject: it.subject || parsedSubj,
+        semester: it.semester || parsedSem || '1학기',
+      }));
+      updated++;
+    } catch (err: any) {
+      errors[k] = err.message || '시트를 불러오지 못했습니다.';
+    }
+  }
+
+  const updatedStatus = updateSheetStatus();
+  io.emit('sheet_synced', updatedStatus);
+  return { updated, errors };
+}
+
+async function loadConfigFromDisk() {
+  try {
+    if (fs.existsSync(CONFIG_FILE_PATH)) {
+      const data = fs.readFileSync(CONFIG_FILE_PATH, 'utf-8');
+      const loaded = JSON.parse(data);
+      if (loaded && typeof loaded === 'object') {
+        Object.assign(sheetUrlsByKey, loaded);
+        console.log('📄 [시트 설정 복원] 저장된 구글 시트 링크를 불러왔습니다:', Object.keys(loaded));
+        await refreshRegisteredSheets();
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load sheet-config.json:', err);
+  }
+}
+
 function parseSubjectSemesterKey(key: string): { subject: string; semester?: '1학기' | '2학기' } {
   if (key.includes('_2학기')) {
     return { subject: key.replace('_2학기', ''), semester: '2학기' };
@@ -632,6 +686,7 @@ app.post('/api/sheet/sync', async (req, res) => {
         }
       }
       const updatedStatus = updateSheetStatus();
+      saveConfigToDisk();
       io.emit('sheet_synced', updatedStatus);
       return res.json({ success: true, sheetStatus: updatedStatus });
     }
@@ -665,6 +720,7 @@ app.post('/api/sheet/sync', async (req, res) => {
       }
 
       const updatedStatus = updateSheetStatus();
+      saveConfigToDisk();
       io.emit('sheet_synced', updatedStatus);
 
       const nonEmptyUrls = Object.entries(sheetUrls).filter(
@@ -706,6 +762,7 @@ app.post('/api/sheet/sync', async (req, res) => {
       }
       sheetUrlsByKey['국어_1학기'] = sheetUrl.trim();
       const updatedStatus = updateSheetStatus();
+      saveConfigToDisk();
       io.emit('sheet_synced', updatedStatus);
       return res.json({ success: true, sheetStatus: updatedStatus });
     }
@@ -714,6 +771,22 @@ app.post('/api/sheet/sync', async (req, res) => {
   } catch (err: any) {
     console.error('Failed to sync sheet:', err);
     res.status(400).json({ error: err.message || '구글 시트를 불러오지 못했습니다.' });
+  }
+});
+
+app.post('/api/sheet/refresh', async (req, res) => {
+  try {
+    const { updated, errors } = await refreshRegisteredSheets();
+    saveConfigToDisk();
+    return res.json({
+      success: true,
+      sheetStatus,
+      updated,
+      errors: Object.keys(errors).length > 0 ? errors : undefined,
+    });
+  } catch (err: any) {
+    console.error('Failed to refresh sheets:', err);
+    return res.status(500).json({ error: err.message || '시트 새로고침 실패' });
   }
 });
 
@@ -738,6 +811,7 @@ app.post('/api/sheet/reset', (req, res) => {
   }
 
   const updatedStatus = updateSheetStatus();
+  saveConfigToDisk();
   io.emit('sheet_synced', updatedStatus);
   res.json({ success: true, sheetStatus: updatedStatus });
 });
@@ -772,8 +846,9 @@ async function startServer() {
     });
   }
 
-  server.listen(PORT, '0.0.0.0', () => {
+  server.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 [서버 실행 완료] 실시간 어휘 퀴즈 배틀 서버 포트 ${PORT}에서 실행 중`);
+    await loadConfigFromDisk();
   });
 }
 
