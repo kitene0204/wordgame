@@ -1,9 +1,30 @@
 import { SheetSyncStatus } from '../types';
 
+async function safeParseResponse(res: Response): Promise<any> {
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    // Non-JSON response (e.g., Cloud Run / proxy 502/503/504 HTML error page)
+    if (!res.ok) {
+      if (res.status === 502 || res.status === 503 || res.status === 504) {
+        throw new Error('서버가 일시적으로 연결 준비 중입니다. 잠시 후 다시 시도해주세요.');
+      }
+      throw new Error(`서버 오류가 발생했습니다 (${res.status}). 잠시 후 다시 시도해주세요.`);
+    }
+    throw new Error('서버 응답 형식이 올바르지 않습니다.');
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || `요청 처리 중 오류가 발생했습니다 (${res.status}).`);
+  }
+  return data;
+}
+
 export async function fetchSheetStatus(): Promise<SheetSyncStatus> {
   const res = await fetch('/api/sheet/status');
-  if (!res.ok) throw new Error('시트 상태를 불러오지 못했습니다.');
-  return res.json();
+  return safeParseResponse(res);
 }
 
 export async function syncMultipleGoogleSheets(
@@ -14,10 +35,7 @@ export async function syncMultipleGoogleSheets(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sheetUrls }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || '구글 시트 동기화에 실패했습니다.');
-  }
+  const data = await safeParseResponse(res);
   return { sheetStatus: data.sheetStatus, errors: data.errors };
 }
 
@@ -30,10 +48,7 @@ export async function syncSingleSubjectSheet(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key: keyOrSubject, subject: keyOrSubject, sheetUrl }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || '시트 동기화에 실패했습니다.');
-  }
+  const data = await safeParseResponse(res);
   return data.sheetStatus;
 }
 
@@ -43,10 +58,7 @@ export async function syncGoogleSheet(sheetUrl: string): Promise<SheetSyncStatus
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sheetUrl }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || '구글 시트 동기화에 실패했습니다.');
-  }
+  const data = await safeParseResponse(res);
   return data.sheetStatus;
 }
 
@@ -59,10 +71,7 @@ export async function refreshGoogleSheets(): Promise<{
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || '시트 새로고침에 실패했습니다.');
-  }
+  const data = await safeParseResponse(res);
   return { sheetStatus: data.sheetStatus, updated: data.updated, errors: data.errors };
 }
 
@@ -72,10 +81,7 @@ export async function resetGoogleSheet(keyOrSubject?: string): Promise<SheetSync
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key: keyOrSubject, subject: keyOrSubject }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || '초기화에 실패했습니다.');
-  }
+  const data = await safeParseResponse(res);
   return data.sheetStatus;
 }
 

@@ -118,12 +118,20 @@ export function parseCsvToVocab(
   let exampleCol = -1;
 
   headerRow.forEach((col, idx) => {
-    if (/학기|semester|term/.test(col)) semesterCol = idx;
-    else if (/과목|구분|교과|분야|subject|category/.test(col)) subjectCol = idx;
-    else if (/단어|낱말|어휘|영어단어|영단어|word|term|vocab/.test(col)) wordCol = idx;
-    else if (/뜻|의미|설명|풀이|우리말|정의|meaning|definition/.test(col)) meaningCol = idx;
-    else if (/한자|발음|발음기호|음훈|hanja|pronunciation/.test(col)) hanjaCol = idx;
-    else if (/예문|문장|활용|example|sentence/.test(col)) exampleCol = idx;
+    if (/학기|semester|term/.test(col)) {
+      semesterCol = idx;
+    } else if (/과목|구분|교과|분야|subject|category/.test(col)) {
+      subjectCol = idx;
+    } else if (/한자|발음|발음기호|음훈|hanja|pronunciation/.test(col)) {
+      // Must check hanja before meaning, so '한자 풀이' is assigned to hanjaCol, not meaningCol
+      hanjaCol = idx;
+    } else if (/단어|낱말|어휘|영어단어|영단어|word|term|vocab/.test(col)) {
+      wordCol = idx;
+    } else if (/뜻|의미|설명|풀이|우리말|정의|meaning|definition/.test(col)) {
+      meaningCol = idx;
+    } else if (/예문|문장|활용|example|sentence/.test(col)) {
+      exampleCol = idx;
+    }
   });
 
   const isHeaderValid = wordCol !== -1 && meaningCol !== -1;
@@ -174,13 +182,15 @@ export function parseCsvToVocab(
 
     // Must have at least word and meaning
     if (!word || !meaning) continue;
-    // Skip if it looks like an unparsed header row
+    // Skip if it looks like an unparsed header row or notice
     if (
       word === '단어' ||
       word === '낱말' ||
       word.toLowerCase() === 'word' ||
       meaning === '뜻' ||
-      meaning.toLowerCase() === 'meaning'
+      meaning.toLowerCase() === 'meaning' ||
+      word.startsWith('※') ||
+      word.startsWith('*')
     ) {
       continue;
     }

@@ -1,1 +1,323 @@
-{}
+{
+  "국어_1학기": [],
+  "국어_2학기": [],
+  "수학_1학기": [
+    {
+      "word": "분수",
+      "meaning": "分(나눌 분) 數(셈 수)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "등분",
+      "meaning": "等(같을 등) 分(나눌 분)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "실생활",
+      "meaning": "實(참 실) 生活(살 생활)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "평가",
+      "meaning": "評(평할 평) 價(값 가)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "입체도형",
+      "meaning": "立(설 립) 體(몸 체) 圖(그림 도) 形(모양 형)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "전개도",
+      "meaning": "展(펼 전) 開(열 개) 圖(그림 도)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "합동",
+      "meaning": "合(합할 합) 同(한가지 동)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "수직",
+      "meaning": "垂(드리울 수) 直(곧을 직)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "분류",
+      "meaning": "分(나눌 분) 類(무리 류)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "조건",
+      "meaning": "條(가지 조) 件(물건 건)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "완성",
+      "meaning": "完(완전할 완) 成(이룰 성)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "자연수",
+      "meaning": "自(스스로 자) 然(그럴 연) 數(셈 수)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "배",
+      "meaning": "倍(곱 배)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "식",
+      "meaning": "式(법 식)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "비",
+      "meaning": "比(견줄 비)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "비율",
+      "meaning": "比(견줄 비) 率(비율 률)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "기준량",
+      "meaning": "基(터 기) 準(준할 준) 量(헤아릴 량)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "백분율",
+      "meaning": "百(일백 백) 分(나눌 분) 率(비율 률)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "할인율",
+      "meaning": "割(벨 할) 引(끌 인) 率(비율 률)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "이자율",
+      "meaning": "利(이로울 이) 子(아들 자) 率(비율 률)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "차이",
+      "meaning": "差(어긋날 차) 異(다를 이)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "기호",
+      "meaning": "記(기록할 기) 號(부를 호)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "양",
+      "meaning": "量(헤아릴 량)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "선호도",
+      "meaning": "選(가릴 선) 好(좋을 호) 度(법도 도)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "원액",
+      "meaning": "原(근원 원) 液(진 액)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "타율",
+      "meaning": "打(칠 타) 率(비율 률)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "회",
+      "meaning": "回(돌 회)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "목표",
+      "meaning": "目(눈 목) 標(표할 표)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "사실",
+      "meaning": "事(일 사) 實(열매 실)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "부분",
+      "meaning": "部(나눌 부) 分(나눌 분)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "계산기",
+      "meaning": "計(셀 계) 算(셈 산) 機(틀 기)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "정보",
+      "meaning": "情(뜻 정) 報(알릴 보)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "수집",
+      "meaning": "蒐(모을 수) 集(모을 집)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "해석",
+      "meaning": "解(풀 해) 釋(풀 석)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "기타",
+      "meaning": "其他(그 밖의 다른 것 기 타)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "공간",
+      "meaning": "空(빌 공) 間(사이 간)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "단위",
+      "meaning": "單(홑 단) 位(자리 위)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "측정",
+      "meaning": "測(잴 측) 定(정할 정)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    },
+    {
+      "word": "해결",
+      "meaning": "解(풀 해) 決(결단할 결)",
+      "hanja": "-",
+      "subject": "수학",
+      "semester": "1학기",
+      "example": ""
+    }
+  ],
+  "수학_2학기": [],
+  "사회_1학기": [],
+  "사회_2학기": [],
+  "영어_1학기": [],
+  "영어_2학기": []
+}
