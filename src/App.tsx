@@ -13,7 +13,8 @@ import { RoundResultScreen } from './components/RoundResultScreen';
 import { LeaderboardScreen } from './components/LeaderboardScreen';
 import { GameOverScreen } from './components/GameOverScreen';
 import { SoloQuizScreen } from './components/SoloQuizScreen';
-import { RoomState, SubjectType } from './types';
+import { GoogleSheetModal } from './components/GoogleSheetModal';
+import { RoomState, SubjectType, SheetSyncStatus } from './types';
 import {
   getSocket,
   createRoom,
@@ -25,6 +26,7 @@ import {
   nextQuestion,
   restartGame,
 } from './services/socketService';
+import { fetchSheetStatus, syncGoogleSheet, resetGoogleSheet } from './services/sheetService';
 
 export default function App() {
   const [initialRoomCode, setInitialRoomCode] = useState<string>('');
@@ -33,6 +35,11 @@ export default function App() {
   const [timeRemaining, setTimeRemaining] = useState<number>(15);
   const [soloConfig, setSoloConfig] = useState<{ subject: SubjectType; numQuestions: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Google Sheet Integration State
+  const [sheetStatus, setSheetStatus] = useState<SheetSyncStatus | null>(null);
+  const [isSheetModalOpen, setIsSheetModalOpen] = useState(false);
+  const [isSheetLoading, setIsSheetLoading] = useState(false);
 
   // Parse URL query parameter (e.g. ?room=482910)
   useEffect(() => {
@@ -45,12 +52,23 @@ export default function App() {
     }
   }, []);
 
+  // Fetch initial sheet status from server
+  useEffect(() => {
+    fetchSheetStatus()
+      .then((status) => setSheetStatus(status))
+      .catch((err) => console.log('Sheet status check:', err));
+  }, []);
+
   // Setup Socket Listeners
   useEffect(() => {
     const socket = getSocket();
 
     socket.on('connect', () => {
       setMyPlayerId(socket.id || '');
+    });
+
+    socket.on('sheet_synced', (status: SheetSyncStatus) => {
+      setSheetStatus(status);
     });
 
     socket.on('room_created', (data: { roomCode: string; playerId: string }) => {
@@ -79,6 +97,7 @@ export default function App() {
 
     return () => {
       socket.off('connect');
+      socket.off('sheet_synced');
       socket.off('room_created');
       socket.off('room_joined');
       socket.off('room_state');
@@ -115,6 +134,27 @@ export default function App() {
     }
   };
 
+  // Google Sheet handlers
+  const handleSyncSheet = async (url: string) => {
+    setIsSheetLoading(true);
+    try {
+      const updatedStatus = await syncGoogleSheet(url);
+      setSheetStatus(updatedStatus);
+    } finally {
+      setIsSheetLoading(false);
+    }
+  };
+
+  const handleResetSheet = async () => {
+    setIsSheetLoading(true);
+    try {
+      const updatedStatus = await resetGoogleSheet();
+      setSheetStatus(updatedStatus);
+    } finally {
+      setIsSheetLoading(false);
+    }
+  };
+
   const isHost = roomState ? roomState.hostId === myPlayerId : false;
   const inMultiplayer = roomState !== null;
 
@@ -126,6 +166,8 @@ export default function App() {
         isHost={isHost}
         playerCount={roomState ? Object.keys(roomState.players).length : undefined}
         onGoHome={inMultiplayer || soloConfig ? handleGoHome : undefined}
+        onOpenSheetModal={() => setIsSheetModalOpen(true)}
+        sheetStatus={sheetStatus}
       />
 
       {/* Main Content Area */}
@@ -153,6 +195,8 @@ export default function App() {
                   timeLimitSec={roomState.timeLimitSec}
                   onUpdateSettings={updateRoomSettings}
                   onStartGame={startGame}
+                  onOpenSheetModal={() => setIsSheetModalOpen(true)}
+                  sheetStatus={sheetStatus}
                 />
               ) : (
                 <StudentLobby
@@ -246,9 +290,22 @@ export default function App() {
             onCreateRoom={handleCreateRoom}
             onStartSolo={handleStartSolo}
             initialRoomCode={initialRoomCode}
+            onOpenSheetModal={() => setIsSheetModalOpen(true)}
+            sheetStatus={sheetStatus}
           />
         )}
       </main>
+
+      {/* Google Sheet Modal */}
+      <GoogleSheetModal
+        isOpen={isSheetModalOpen}
+        onClose={() => setIsSheetModalOpen(false)}
+        sheetStatus={sheetStatus}
+        onSync={handleSyncSheet}
+        onReset={handleResetSheet}
+        isLoading={isSheetLoading}
+      />
     </div>
   );
 }
+

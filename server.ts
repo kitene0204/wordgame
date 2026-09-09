@@ -4,7 +4,9 @@ import path from 'path';
 import { Server, Socket } from 'socket.io';
 import { createServer as createViteServer } from 'vite';
 import { generateQuizQuestions } from './src/utils/quizGenerator';
-import { Player, PlayerAnswerRecord, QuestionHistoryItem, QuizQuestion, RoomState, RoomStatus, SubjectType } from './src/types';
+import { VOCAB_DATA, VocabItem } from './src/data/vocabData';
+import { fetchGoogleSheetVocab } from './src/utils/googleSheetSync';
+import { Player, PlayerAnswerRecord, QuestionHistoryItem, QuizQuestion, RoomState, RoomStatus, SheetSyncStatus, SubjectType } from './src/types';
 
 interface ServerRoom {
   roomCode: string;
@@ -30,6 +32,25 @@ const server = http.createServer(app);
 const PORT = 3000;
 
 app.use(express.json());
+
+// Vocabulary and Google Sheet State
+function getSubjectCounts(vocabList: VocabItem[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  vocabList.forEach((item) => {
+    counts[item.subject] = (counts[item.subject] || 0) + 1;
+  });
+  return counts;
+}
+
+let activeVocabList: VocabItem[] = [...VOCAB_DATA];
+let sheetStatus: SheetSyncStatus = {
+  isCustomSheet: false,
+  sheetUrl: '',
+  lastSyncedAt: null,
+  wordCount: VOCAB_DATA.length,
+  subjectCounts: getSubjectCounts(VOCAB_DATA),
+  availableSubjects: ['전체', '국어', '수학', '사회', '영어', '과학'],
+};
 
 const io = new Server(server, {
   cors: {
@@ -163,6 +184,9 @@ function advanceToQuestion(room: ServerRoom, index: number) {
 
 // Socket connection
 io.on('connection', (socket: Socket) => {
+  // Send current sheet sync status immediately
+  socket.emit('sheet_synced', sheetStatus);
+
   // 1. Create Room (Host)
   socket.on('create_room', (data: {
     subject?: SubjectType;
@@ -281,8 +305,8 @@ io.on('connection', (socket: Socket) => {
     const room = rooms.get(roomCode);
     if (!room || room.hostId !== socket.id) return;
 
-    // Generate questions
-    const generated = generateQuizQuestions(room.subject, room.numQuestions);
+    // Generate questions using active vocabulary list (synced from Google Sheet if connected)
+    const generated = generateQuizQuestions(room.subject, room.numQuestions, activeVocabList);
     room.questions = generated;
     room.numQuestions = generated.length;
     room.currentIndex = 0;
@@ -456,7 +480,54 @@ io.on('connection', (socket: Socket) => {
 
 // REST API
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', activeRooms: rooms.size });
+  res.json({ status: 'ok', activeRooms: rooms.size, wordCount: activeVocabList.length });
+});
+
+app.get('/api/sheet/status', (req, res) => {
+  res.json(sheetStatus);
+});
+
+app.post('/api/sheet/sync', async (req, res) => {
+  try {
+    const { sheetUrl } = req.body;
+    if (!sheetUrl || typeof sheetUrl !== 'string') {
+      return res.status(400).json({ error: '구글 시트 링크를 입력해주세요.' });
+    }
+
+    const result = await fetchGoogleSheetVocab(sheetUrl);
+    activeVocabList = result.items;
+
+    const subjects = ['전체', ...Object.keys(result.subjectCounts)];
+    sheetStatus = {
+      isCustomSheet: true,
+      sheetUrl,
+      lastSyncedAt: new Date().toISOString(),
+      wordCount: result.items.length,
+      subjectCounts: result.subjectCounts,
+      availableSubjects: Array.from(new Set(subjects)),
+    };
+
+    io.emit('sheet_synced', sheetStatus);
+    res.json({ success: true, sheetStatus });
+  } catch (err: any) {
+    console.error('Failed to sync sheet:', err);
+    res.status(400).json({ error: err.message || '구글 시트를 불러오지 못했습니다.' });
+  }
+});
+
+app.post('/api/sheet/reset', (req, res) => {
+  activeVocabList = [...VOCAB_DATA];
+  sheetStatus = {
+    isCustomSheet: false,
+    sheetUrl: '',
+    lastSyncedAt: null,
+    wordCount: VOCAB_DATA.length,
+    subjectCounts: getSubjectCounts(VOCAB_DATA),
+    availableSubjects: ['전체', '국어', '수학', '사회', '영어', '과학'],
+  };
+
+  io.emit('sheet_synced', sheetStatus);
+  res.json({ success: true, sheetStatus });
 });
 
 app.get('/api/room/:code', (req, res) => {

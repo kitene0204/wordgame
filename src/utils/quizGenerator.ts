@@ -10,19 +10,46 @@ export function shuffle<T>(array: T[]): T[] {
   return arr;
 }
 
-export function generateQuizQuestions(subject: SubjectType, count: number): QuizQuestion[] {
-  let pool = VOCAB_DATA;
+export function generateQuizQuestions(
+  subject: SubjectType,
+  count: number,
+  customPool?: VocabItem[]
+): QuizQuestion[] {
+  const basePool = customPool && customPool.length > 0 ? customPool : VOCAB_DATA;
+
+  let pool = basePool;
   if (subject !== '전체') {
-    pool = VOCAB_DATA.filter((item) => item.subject === subject);
+    pool = basePool.filter((item) => item.subject === subject);
+    // If filtered pool is empty (e.g. newly added subject with no matching words), fallback to base
+    if (pool.length === 0) pool = basePool;
   }
 
   // Fallback if requested count is larger than pool
   const actualCount = Math.min(count, pool.length);
   const shuffledVocab = shuffle(pool).slice(0, actualCount);
-  const types: QuizQuestionType[] = ['hanjaToWord', 'wordToHanja', 'meaningToWord', 'wordToMeaning'];
 
   return shuffledVocab.map((item, index) => {
-    const type = types[Math.floor(Math.random() * types.length)];
+    const isEnglish = item.subject === '영어' || /^[a-zA-Z\s]+$/.test(item.word.trim());
+    // Check if item has a valid real Chinese character Hanja
+    const hasRealHanja =
+      Boolean(item.hanja) &&
+      item.hanja.trim() !== '-' &&
+      !item.hanja.startsWith('[') &&
+      /[\u4E00-\u9FFF]/.test(item.hanja);
+
+    // Determine available question types for this item
+    const possibleTypes: QuizQuestionType[] = [];
+    if (hasRealHanja) {
+      possibleTypes.push('hanjaToWord', 'wordToHanja', 'meaningToWord', 'wordToMeaning');
+    } else {
+      // English or vocabulary without Hanja
+      possibleTypes.push('meaningToWord', 'wordToMeaning');
+      if (item.example && item.example.toLowerCase().includes(item.word.toLowerCase())) {
+        possibleTypes.push('sentenceFillBlank');
+      }
+    }
+
+    const type = possibleTypes[Math.floor(Math.random() * possibleTypes.length)];
     let questionTitle = '';
     let questionHighlight = '';
     let correctOption = '';
@@ -41,23 +68,58 @@ export function generateQuizQuestions(subject: SubjectType, count: number): Quiz
         questionTitle = '다음 낱말에 알맞은 한자는 무엇일까요?';
         questionHighlight = `[ ${item.word} ]`;
         correctOption = item.hanja;
-        const uniqueHanjas = Array.from(new Set(wrongOptionsPool.map((v) => v.hanja)));
+        const uniqueHanjas = Array.from(new Set(wrongOptionsPool.map((v) => v.hanja))).filter(
+          (h) => h && h !== '-' && !h.startsWith('[')
+        );
         options = [correctOption, ...shuffle(uniqueHanjas).slice(0, 3)];
         break;
 
       case 'meaningToWord':
-        questionTitle = '다음 뜻을 가진 알맞은 낱말은 무엇일까요?';
+        questionTitle = isEnglish
+          ? '다음 뜻을 가진 알맞은 영어 단어는 무엇일까요?'
+          : '다음 뜻을 가진 알맞은 낱말은 무엇일까요?';
         questionHighlight = `"${item.meaning}"`;
         correctOption = item.word;
         options = [correctOption, ...shuffle(wrongOptionsPool).slice(0, 3).map((v) => v.word)];
         break;
 
       case 'wordToMeaning':
-        questionTitle = '다음 낱말의 올바른 뜻은 무엇일까요?';
+        questionTitle = isEnglish
+          ? '다음 영어 단어의 올바른 우리말 뜻은 무엇일까요?'
+          : '다음 낱말의 올바른 뜻은 무엇일까요?';
         questionHighlight = `[ ${item.word} ]`;
         correctOption = item.meaning;
         options = [correctOption, ...shuffle(wrongOptionsPool).slice(0, 3).map((v) => v.meaning)];
         break;
+
+      case 'sentenceFillBlank':
+        questionTitle = isEnglish
+          ? '다음 문장의 빈칸 (     )에 들어갈 알맞은 영어 단어는?'
+          : '다음 문장의 빈칸 (     )에 들어갈 알맞은 낱말은?';
+        // Replace word in example with blank (     )
+        const regex = new RegExp(`\\b${item.word}\\b`, 'i');
+        const blankSentence = item.example.replace(regex, '(        )');
+        questionHighlight = `"${blankSentence}"`;
+        correctOption = item.word;
+        options = [correctOption, ...shuffle(wrongOptionsPool).slice(0, 3).map((v) => v.word)];
+        break;
+    }
+
+    // Ensure we have 4 options even if pool is small
+    const uniqueOptions = Array.from(new Set(options));
+    while (uniqueOptions.length < 4 && wrongOptionsPool.length > 0) {
+      const randomExtra = shuffle(wrongOptionsPool)[0];
+      const optVal =
+        type === 'wordToMeaning'
+          ? randomExtra.meaning
+          : type === 'wordToHanja'
+          ? randomExtra.hanja
+          : randomExtra.word;
+      if (!uniqueOptions.includes(optVal)) {
+        uniqueOptions.push(optVal);
+      } else {
+        break;
+      }
     }
 
     return {
@@ -66,8 +128,9 @@ export function generateQuizQuestions(subject: SubjectType, count: number): Quiz
       item,
       questionTitle,
       questionHighlight,
-      options: shuffle(options),
+      options: shuffle(uniqueOptions),
       correctOption,
     };
   });
 }
+

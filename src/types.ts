@@ -1,7 +1,16 @@
 import { VocabItem } from './data/vocabData';
 
-export type SubjectType = '전체' | '국어' | '수학' | '사회' | '과학';
-export type QuizQuestionType = 'hanjaToWord' | 'wordToHanja' | 'meaningToWord' | 'wordToMeaning';
+export type SubjectType = '전체' | '국어' | '수학' | '사회' | '영어' | '과학' | string;
+export type QuizQuestionType = 'hanjaToWord' | 'wordToHanja' | 'meaningToWord' | 'wordToMeaning' | 'sentenceFillBlank';
+
+export interface SheetSyncStatus {
+  isCustomSheet: boolean;
+  sheetUrl: string;
+  lastSyncedAt: string | null;
+  wordCount: number;
+  subjectCounts: Record<string, number>;
+  availableSubjects: string[];
+}
 
 export interface QuizQuestion {
   id: string;

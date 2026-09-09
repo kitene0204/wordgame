@@ -99,9 +99,13 @@ export const RoundResultScreen: React.FC<RoundResultScreenProps> = ({
             <span className="text-xs text-slate-400 font-bold block mb-1">정답 낱말</span>
             <div className="text-4xl sm:text-5xl font-extrabold text-sky-700 mb-2">
               {question.item.word}
-              <span className="text-2xl sm:text-3xl text-sky-400 ml-2 font-serif">
-                [{question.item.hanja}]
-              </span>
+              {question.item.hanja && question.item.hanja !== '-' && (
+                <span className="text-2xl sm:text-3xl text-sky-500 ml-2 font-serif">
+                  {question.item.hanja.startsWith('[')
+                    ? question.item.hanja
+                    : `[${question.item.hanja}]`}
+                </span>
+              )}
             </div>
             <div className="inline-block bg-sky-50 text-sky-900 text-lg sm:text-xl font-bold px-5 py-2 rounded-2xl border-2 border-sky-200 mt-2 mb-4">
               뜻: {question.item.meaning}

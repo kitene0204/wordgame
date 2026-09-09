@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Play, Sparkles, BookOpen, Clock, Settings, HelpCircle, Trophy, Flame } from 'lucide-react';
-import { SubjectType } from '../types';
+import { Users, UserPlus, Play, Sparkles, BookOpen, Clock, Settings, HelpCircle, Trophy, Flame, FileSpreadsheet } from 'lucide-react';
+import { SubjectType, SheetSyncStatus } from '../types';
 import { playSound } from '../utils/audio';
 
 interface HomeScreenProps {
@@ -8,6 +8,8 @@ interface HomeScreenProps {
   onCreateRoom: (hostName: string, avatar: string, subject: SubjectType, numQuestions: number, timeLimitSec: number) => void;
   onStartSolo: (subject: SubjectType, numQuestions: number) => void;
   initialRoomCode?: string;
+  onOpenSheetModal?: () => void;
+  sheetStatus?: SheetSyncStatus | null;
 }
 
 const AVATARS = ['🦁', '🐯', '🐰', '🦊', '🐼', '🐨', '🦄', '🐸', '🐶', '🐱', '🐣', '🚀'];
@@ -17,6 +19,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onCreateRoom,
   onStartSolo,
   initialRoomCode = '',
+  onOpenSheetModal,
+  sheetStatus,
 }) => {
   const [mainTab, setMainTab] = useState<'CLASS' | 'SOLO'>('CLASS');
   const [classSubTab, setClassSubTab] = useState<'JOIN' | 'CREATE'>(initialRoomCode ? 'JOIN' : 'JOIN');
@@ -236,6 +240,44 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               ) : (
                 /* Teacher Create Form */
                 <form onSubmit={handleTeacherCreate} className="space-y-5">
+                  {/* Google Sheet Sync Banner */}
+                  <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+                        📊
+                      </div>
+                      <div className="text-left">
+                        <div className="flex items-center gap-1.5 font-extrabold text-xs sm:text-sm text-emerald-950">
+                          <span>선생님 구글 시트 단어장 연동</span>
+                          {sheetStatus?.isCustomSheet ? (
+                            <span className="bg-emerald-200 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">
+                              연동 중 ({sheetStatus.wordCount}단어)
+                            </span>
+                          ) : (
+                            <span className="bg-slate-200 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                              기본 단어장 ({sheetStatus?.wordCount || 60}단어)
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-emerald-700 font-medium">
+                          국어·수학·사회·영어 단어를 시트에서 수정하면 퀴즈에 즉시 반영됩니다!
+                        </p>
+                      </div>
+                    </div>
+                    {onOpenSheetModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playSound('click');
+                          onOpenSheetModal();
+                        }}
+                        className="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition-colors cursor-pointer shadow-xs"
+                      >
+                        시트 설정
+                      </button>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       선생님 닉네임
@@ -254,8 +296,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       출제 과목 선택
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {(['전체', '국어', '수학', '사회'] as SubjectType[]).map((subj) => (
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {(['전체', '국어', '수학', '사회', '영어'] as SubjectType[]).map((subj) => (
                         <button
                           key={subj}
                           type="button"
@@ -356,8 +398,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <label className="block text-sm font-bold text-slate-700 mb-2">
                   공부할 과목 선택
                 </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['전체', '국어', '수학', '사회'] as SubjectType[]).map((subj) => (
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {(['전체', '국어', '수학', '사회', '영어'] as SubjectType[]).map((subj) => (
                     <button
                       key={subj}
                       type="button"
@@ -365,7 +407,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         playSound('click');
                         setSoloSubject(subj);
                       }}
-                      className={`py-3 rounded-2xl font-bold text-lg transition-all border-b-3 cursor-pointer ${
+                      className={`py-3 rounded-2xl font-bold text-base sm:text-lg transition-all border-b-3 cursor-pointer ${
                         soloSujbect === subj
                           ? 'bg-emerald-400 text-emerald-950 border-emerald-600 translate-y-0.5 shadow-xs'
                           : 'bg-white text-slate-600 border-slate-200 hover:bg-emerald-50'

@@ -2,7 +2,7 @@ export interface VocabItem {
   word: string;
   meaning: string;
   hanja: string;
-  subject: '국어' | '수학' | '사회' | '과학';
+  subject: '국어' | '수학' | '사회' | '영어' | '과학' | string;
   example: string;
 }
 
@@ -72,5 +72,27 @@ export const VOCAB_DATA: VocabItem[] = [
   { word: "소화", meaning: "불을 끄거나 / 음식물을 잘게 부수어 몸에 흡수되도록 함", hanja: "消火 / 消化", subject: "과학", example: "화재가 발생하면 신속하게 소화기를 사용해야 한다." },
   { word: "산화", meaning: "어떤 물질이 산소와 결합하는 화학적 변화", hanja: "酸化", subject: "과학", example: "공기 중의 산소와 만나 쇠가 붉게 녹스는 것은 산화이다." },
   { word: "광합성", meaning: "식물이 햇빛과 이산화 탄소, 물을 이용해 양분과 산소를 만듦", hanja: "光合成", subject: "과학", example: "식물의 잎에서 광합성이 활발하게 일어난다." },
-  { word: "생태계", meaning: "어떤 지역의 모든 생물과 그들을 둘러싼 환경이 이루는 체계", hanja: "生態系", subject: "과학", example: "환경오염은 지구 생태계의 균형을 무너뜨린다." }
+  { word: "생태계", meaning: "어떤 지역의 모든 생물과 그들을 둘러싼 환경이 이루는 체계", hanja: "生態系", subject: "과학", example: "환경오염은 지구 생태계의 균형을 무너뜨린다." },
+
+  // --- 영어 (초등 필수 영단어) ---
+  { word: "discover", meaning: "발견하다, 알아내다", hanja: "[dɪˈskʌvər]", subject: "영어", example: "Scientists discover new secrets about space." },
+  { word: "curious", meaning: "호기심이 많은, 알고 싶어 하는", hanja: "[ˈkjʊəriəs]", subject: "영어", example: "The curious students asked many questions." },
+  { word: "environment", meaning: "환경, 자연환경", hanja: "[ɪnˈvaɪrənmənt]", subject: "영어", example: "We need to protect our beautiful environment." },
+  { word: "temperature", meaning: "온도, 기온, 체온", hanja: "[ˈtemprətʃə]", subject: "영어", example: "The temperature dropped below zero today." },
+  { word: "community", meaning: "공동체, 지역 사회", hanja: "[kəˈmjuːnəti]", subject: "영어", example: "Our school is an important part of the local community." },
+  { word: "tradition", meaning: "전통, 관습", hanja: "[trəˈdɪʃn]", subject: "영어", example: "Wearing Hanbok on Chuseok is a proud Korean tradition." },
+  { word: "multiply", meaning: "곱하다, 크게 늘리다", hanja: "[ˈmʌltɪplaɪ]", subject: "영어", example: "If you multiply four by five, you get twenty." },
+  { word: "fraction", meaning: "분수, 아주 작은 부분", hanja: "[ˈfrækʃn]", subject: "영어", example: "One half (1/2) is the most basic fraction." },
+  { word: "citizen", meaning: "시민, 국민", hanja: "[ˈsɪtɪzn]", subject: "영어", example: "Every citizen has the right and duty to vote." },
+  { word: "library", meaning: "도서관", hanja: "[ˈlaɪbrəri]", subject: "영어", example: "I borrow interesting science books from the library." },
+  { word: "protect", meaning: "보호하다, 지키다", hanja: "[prəˈtekt]", subject: "영어", example: "We must wear helmets to protect our heads." },
+  { word: "recycle", meaning: "재활용하다", hanja: "[ˌriːˈsaɪkl]", subject: "영어", example: "Please recycle plastic bottles and empty cans." },
+  { word: "future", meaning: "미래, 장래", hanja: "[ˈfjuːtʃə]", subject: "영어", example: "Robots and AI will shape our exciting future." },
+  { word: "challenge", meaning: "도전, 해볼 만한 과제", hanja: "[ˈtʃælɪndʒ]", subject: "영어", example: "Solving difficult math puzzles is a great challenge." },
+  { word: "honest", meaning: "정직한, 솔직한", hanja: "[ˈɒnɪst]", subject: "영어", example: "An honest person always tells the truth." },
+  { word: "habit", meaning: "습관, 버릇", hanja: "[ˈhæbɪt]", subject: "영어", example: "Reading books before sleeping is a healthy habit." },
+  { word: "planet", meaning: "행성, 지구", hanja: "[ˈplænɪt]", subject: "영어", example: "Earth is the only living planet in our solar system." },
+  { word: "energy", meaning: "에너지, 활기, 힘", hanja: "[ˈenədʒi]", subject: "영어", example: "Solar panels create clean energy from sunlight." },
+  { word: "invention", meaning: "발명, 발명품", hanja: "[ɪnˈvenʃn]", subject: "영어", example: "The printing press was a revolutionary invention." },
+  { word: "celebrate", meaning: "기념하다, 축하하다", hanja: "[ˈselɪbreɪt]", subject: "영어", example: "We gather together to celebrate Children's Day." }
 ];

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Home, Copy, Check, Users, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Home, Copy, Check, Users, Sparkles, FileSpreadsheet } from 'lucide-react';
 import { playSound, toggleMute, getMuteState } from '../utils/audio';
+import { SheetSyncStatus } from '../types';
 
 interface NavbarProps {
   roomCode?: string;
   isHost?: boolean;
   onGoHome?: () => void;
   playerCount?: number;
+  onOpenSheetModal?: () => void;
+  sheetStatus?: SheetSyncStatus | null;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -14,6 +17,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   isHost,
   onGoHome,
   playerCount,
+  onOpenSheetModal,
+  sheetStatus,
 }) => {
   const [muted, setMuted] = useState(getMuteState());
   const [copied, setCopied] = useState(false);
@@ -90,6 +95,35 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          {/* Google Sheet Sync Button */}
+          {onOpenSheetModal && (
+            <button
+              onClick={() => {
+                playSound('click');
+                onOpenSheetModal();
+              }}
+              title="구글 시트 어휘 목록 연동 설정"
+              className={`px-3 py-2 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-extrabold shadow-2xs ${
+                sheetStatus?.isCustomSheet
+                  ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border-emerald-400'
+                  : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-300'
+              }`}
+            >
+              <FileSpreadsheet
+                size={16}
+                className={sheetStatus?.isCustomSheet ? 'text-emerald-700' : 'text-emerald-600'}
+              />
+              <span className="hidden sm:inline">
+                {sheetStatus?.isCustomSheet
+                  ? `시트 연동됨 (${sheetStatus.wordCount}개)`
+                  : '📊 구글 시트 연동'}
+              </span>
+              {sheetStatus?.isCustomSheet && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              )}
+            </button>
+          )}
+
           {/* Sound Toggle */}
           <button
             onClick={handleToggleSound}

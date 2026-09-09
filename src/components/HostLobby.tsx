@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Users, Copy, Check, Play, Settings, Sparkles, BookOpen, Clock, ShieldCheck } from 'lucide-react';
-import { Player, SubjectType } from '../types';
+import { Users, Copy, Check, Play, Settings, Sparkles, BookOpen, Clock, ShieldCheck, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { Player, SubjectType, SheetSyncStatus } from '../types';
 import { playSound } from '../utils/audio';
 
 interface HostLobbyProps {
@@ -11,6 +11,8 @@ interface HostLobbyProps {
   timeLimitSec: number;
   onUpdateSettings: (subject: SubjectType, numQuestions: number, timeLimitSec: number) => void;
   onStartGame: () => void;
+  onOpenSheetModal?: () => void;
+  sheetStatus?: SheetSyncStatus | null;
 }
 
 export const HostLobby: React.FC<HostLobbyProps> = ({
@@ -21,6 +23,8 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
   timeLimitSec,
   onUpdateSettings,
   onStartGame,
+  onOpenSheetModal,
+  sheetStatus,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPin, setCopiedPin] = useState(false);
@@ -118,13 +122,24 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
           {showSettings && (
             <div className="mt-4 p-4 rounded-2xl bg-slate-50 border-2 border-slate-200 text-left space-y-3">
               <div>
-                <span className="text-xs font-bold text-slate-600 block mb-1">과목 선택</span>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['전체', '국어', '수학', '사회'] as SubjectType[]).map((subj) => (
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-slate-600">과목 선택</span>
+                  {onOpenSheetModal && (
+                    <button
+                      onClick={onOpenSheetModal}
+                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <FileSpreadsheet size={13} />
+                      {sheetStatus?.isCustomSheet ? '시트 연동 중 (수정/새로고침)' : '구글 시트 연동하기'}
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {(['전체', '국어', '수학', '사회', '영어'] as SubjectType[]).map((subj) => (
                     <button
                       key={subj}
                       onClick={() => onUpdateSettings(subj, numQuestions, timeLimitSec)}
-                      className={`py-1.5 rounded-lg text-sm font-bold cursor-pointer ${
+                      className={`py-1.5 rounded-lg text-xs sm:text-sm font-bold cursor-pointer ${
                         subject === subj ? 'bg-amber-400 text-amber-950 shadow-xs' : 'bg-white border'
                       }`}
                     >
