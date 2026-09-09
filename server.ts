@@ -597,12 +597,15 @@ app.get('/api/sheet/status', (req, res) => {
 });
 
 const CONFIG_FILE_PATH = path.join(process.cwd(), 'sheet-config.json');
+const VOCABS_CACHE_PATH = path.join(process.cwd(), 'sheet-vocabs-cache.json');
 
 function saveConfigToDisk() {
   try {
     fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(sheetUrlsByKey, null, 2), 'utf-8');
+    fs.writeFileSync(VOCABS_CACHE_PATH, JSON.stringify(customVocabsByKey, null, 2), 'utf-8');
+    console.log('💾 [시트 설정 및 어휘 캐시 디스크 영구 저장 완료]');
   } catch (err) {
-    console.error('Failed to save sheet-config.json:', err);
+    console.error('Failed to save sheet-config or vocabs cache:', err);
   }
 }
 
@@ -629,23 +632,47 @@ async function refreshRegisteredSheets(): Promise<{ updated: number; errors: Rec
   }
 
   const updatedStatus = updateSheetStatus();
+  saveConfigToDisk();
   io.emit('sheet_synced', updatedStatus);
   return { updated, errors };
 }
 
 async function loadConfigFromDisk() {
   try {
+    let hasLoadedUrls = false;
     if (fs.existsSync(CONFIG_FILE_PATH)) {
       const data = fs.readFileSync(CONFIG_FILE_PATH, 'utf-8');
       const loaded = JSON.parse(data);
       if (loaded && typeof loaded === 'object') {
         Object.assign(sheetUrlsByKey, loaded);
-        console.log('📄 [시트 설정 복원] 저장된 구글 시트 링크를 불러왔습니다:', Object.keys(loaded));
-        await refreshRegisteredSheets();
+        hasLoadedUrls = Object.values(sheetUrlsByKey).some((u) => Boolean(u));
+        console.log('📄 [시트 URL 디스크 복원]:', Object.keys(loaded).filter((k) => loaded[k]));
       }
     }
+
+    if (fs.existsSync(VOCABS_CACHE_PATH)) {
+      const vData = fs.readFileSync(VOCABS_CACHE_PATH, 'utf-8');
+      const loadedVocabs = JSON.parse(vData);
+      if (loadedVocabs && typeof loadedVocabs === 'object') {
+        Object.assign(customVocabsByKey, loadedVocabs);
+        console.log('📚 [어휘 캐시 디스크 즉시 복원 완료]');
+      }
+    }
+
+    // Immediately compute sheet status with restored data
+    const initialStatus = updateSheetStatus();
+    console.log(
+      `✨ [서버 시작 시트 상태] 총 ${initialStatus.wordCount}개 어휘 (커스텀 시트: ${initialStatus.isCustomSheet})`
+    );
+
+    // Refresh from Google in background if URLs exist
+    if (hasLoadedUrls) {
+      refreshRegisteredSheets().catch((err) =>
+        console.warn('Background startup sheet refresh notice:', err)
+      );
+    }
   } catch (err) {
-    console.error('Failed to load sheet-config.json:', err);
+    console.error('Failed to load sheet-config.json or vocabs cache:', err);
   }
 }
 
@@ -693,15 +720,20 @@ app.post('/api/sheet/sync', async (req, res) => {
 
     // 2. Multiple sync request: { sheetUrls: { '국어_1학기': '...', '국어_2학기': '...', ... } }
     if (sheetUrls && typeof sheetUrls === 'object') {
+      const { clearEmpty = false } = req.body;
       const targetKeys = Object.keys(sheetUrls);
 
       for (const k of targetKeys) {
         const rawUrl = sheetUrls[k];
         const url = typeof rawUrl === 'string' ? rawUrl.trim() : '';
 
+        // If empty URL is provided in multi-sync, only clear if explicitly requested!
+        // Otherwise, keep previously registered sheet URLs intact.
         if (!url) {
-          customVocabsByKey[k] = [];
-          sheetUrlsByKey[k] = '';
+          if (clearEmpty) {
+            customVocabsByKey[k] = [];
+            sheetUrlsByKey[k] = '';
+          }
           continue;
         }
 

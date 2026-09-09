@@ -32,6 +32,9 @@ import {
   syncSingleSubjectSheet,
   resetGoogleSheet,
   refreshGoogleSheets,
+  saveLocalSheetUrls,
+  getLocalSheetUrls,
+  clearLocalSheetUrls,
 } from './services/sheetService';
 import { RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -138,10 +141,27 @@ export default function App() {
     }
   }, []);
 
-  // Fetch initial sheet status from server
+  // Fetch initial sheet status from server with automatic dual-layer cache restoration
   useEffect(() => {
     fetchSheetStatus()
-      .then((status) => setSheetStatus(status))
+      .then(async (status) => {
+        setSheetStatus(status);
+        if (status.isCustomSheet && status.sheetUrls) {
+          saveLocalSheetUrls(status.sheetUrls);
+        } else {
+          // If server restarted and doesn't have custom sheets yet, check if browser has cached URLs
+          const cachedUrls = getLocalSheetUrls();
+          if (cachedUrls && Object.values(cachedUrls).some((u) => Boolean(u && u.trim()))) {
+            console.log('🔄 [로컬 캐시 자동 복원] 브라우저에 저장된 구글 시트 링크를 서버로 자동 복원합니다.');
+            try {
+              const restored = await syncMultipleGoogleSheets(cachedUrls);
+              setSheetStatus(restored.sheetStatus);
+            } catch (err) {
+              console.warn('Auto-restore failed:', err);
+            }
+          }
+        }
+      })
       .catch((err) => console.log('Sheet status check:', err));
   }, []);
 
@@ -225,8 +245,12 @@ export default function App() {
   const handleSyncMultipleSheets = async (sheetUrls: Record<string, string>) => {
     setIsSheetLoading(true);
     try {
+      saveLocalSheetUrls(sheetUrls);
       const res = await syncMultipleGoogleSheets(sheetUrls);
       setSheetStatus(res.sheetStatus);
+      if (res.sheetStatus?.sheetUrls) {
+        saveLocalSheetUrls(res.sheetStatus.sheetUrls);
+      }
       return { errors: res.errors };
     } finally {
       setIsSheetLoading(false);
@@ -236,8 +260,16 @@ export default function App() {
   const handleSyncSingleSubject = async (subject: string, url: string) => {
     setIsSheetLoading(true);
     try {
+      if (url && url.trim()) {
+        saveLocalSheetUrls({ [subject]: url.trim() });
+      } else {
+        clearLocalSheetUrls(subject);
+      }
       const updatedStatus = await syncSingleSubjectSheet(subject, url);
       setSheetStatus(updatedStatus);
+      if (updatedStatus?.sheetUrls) {
+        saveLocalSheetUrls(updatedStatus.sheetUrls);
+      }
     } finally {
       setIsSheetLoading(false);
     }
@@ -246,6 +278,7 @@ export default function App() {
   const handleResetSheet = async (subject?: string) => {
     setIsSheetLoading(true);
     try {
+      clearLocalSheetUrls(subject);
       const updatedStatus = await resetGoogleSheet(subject);
       setSheetStatus(updatedStatus);
     } finally {

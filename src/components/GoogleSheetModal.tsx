@@ -14,9 +14,16 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { SheetSyncStatus } from '../types';
 import { playSound } from '../utils/audio';
+import {
+  getLocalSheetUrls,
+  saveLocalSheetUrls,
+  getLocalSubjectModes,
+  saveLocalSubjectModes,
+} from '../services/sheetService';
 
 interface SubjectConfig {
   id: string;
@@ -136,45 +143,66 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
   const [showGlobalUnified, setShowGlobalUnified] = useState(false);
   const [globalUnifiedUrl, setGlobalUnifiedUrl] = useState('');
+  const [copiedAll, setCopiedAll] = useState(false);
 
-  // Synchronize internal inputs with sheetStatus when modal opens or updates
+  // Synchronize internal inputs with sheetStatus when modal opens or updates, with robust local cache fallback
   useEffect(() => {
-    if (sheetStatus?.sheetUrls) {
-      setUrls((prev) => ({
-        ...prev,
-        국어_1학기: sheetStatus.sheetUrls['국어_1학기'] || '',
-        국어_2학기: sheetStatus.sheetUrls['국어_2학기'] || '',
-        국어: sheetStatus.sheetUrls['국어'] || '',
-        수학_1학기: sheetStatus.sheetUrls['수학_1학기'] || '',
-        수학_2학기: sheetStatus.sheetUrls['수학_2학기'] || '',
-        수학: sheetStatus.sheetUrls['수학'] || '',
-        사회_1학기: sheetStatus.sheetUrls['사회_1학기'] || '',
-        사회_2학기: sheetStatus.sheetUrls['사회_2학기'] || '',
-        사회: sheetStatus.sheetUrls['사회'] || '',
-        영어_1학기: sheetStatus.sheetUrls['영어_1학기'] || '',
-        영어_2학기: sheetStatus.sheetUrls['영어_2학기'] || '',
-        영어: sheetStatus.sheetUrls['영어'] || '',
-      }));
+    const cached = getLocalSheetUrls() || {};
+    const serverUrls = sheetStatus?.sheetUrls || {};
 
-      // Automatically switch to unified mode if only unified URL exists for a subject
-      setSubjectModes((prev) => {
-        const next = { ...prev };
-        for (const subj of ['국어', '수학', '사회', '영어']) {
-          const hasUnified = Boolean(sheetStatus.sheetUrls[subj]);
-          const hasSem = Boolean(sheetStatus.sheetUrls[`${subj}_1학기`] || sheetStatus.sheetUrls[`${subj}_2학기`]);
-          if (hasUnified && !hasSem) {
-            next[subj] = 'UNIFIED';
-          }
-        }
-        return next;
-      });
+    setUrls((prev) => {
+      const next = {
+        ...prev,
+        국어_1학기: serverUrls['국어_1학기'] || cached['국어_1학기'] || prev['국어_1학기'] || '',
+        국어_2학기: serverUrls['국어_2학기'] || cached['국어_2학기'] || prev['국어_2학기'] || '',
+        국어: serverUrls['국어'] || cached['국어'] || prev['국어'] || '',
+        수학_1학기: serverUrls['수학_1학기'] || cached['수학_1학기'] || prev['수학_1학기'] || '',
+        수학_2학기: serverUrls['수학_2학기'] || cached['수학_2학기'] || prev['수학_2학기'] || '',
+        수학: serverUrls['수학'] || cached['수학'] || prev['수학'] || '',
+        사회_1학기: serverUrls['사회_1학기'] || cached['사회_1학기'] || prev['사회_1학기'] || '',
+        사회_2학기: serverUrls['사회_2학기'] || cached['사회_2학기'] || prev['사회_2학기'] || '',
+        사회: serverUrls['사회'] || cached['사회'] || prev['사회'] || '',
+        영어_1학기: serverUrls['영어_1학기'] || cached['영어_1학기'] || prev['영어_1학기'] || '',
+        영어_2학기: serverUrls['영어_2학기'] || cached['영어_2학기'] || prev['영어_2학기'] || '',
+        영어: serverUrls['영어'] || cached['영어'] || prev['영어'] || '',
+      };
+      // Keep local storage updated
+      saveLocalSheetUrls(next);
+      return next;
+    });
+
+    const cachedModes = getLocalSubjectModes();
+    if (cachedModes) {
+      setSubjectModes((prev) => ({ ...prev, ...cachedModes }));
     }
+
+    // Automatically switch to unified mode if only unified URL exists for a subject
+    setSubjectModes((prev) => {
+      const next = { ...prev };
+      for (const subj of ['국어', '수학', '사회', '영어']) {
+        const hasUnified = Boolean(serverUrls[subj] || cached[subj]);
+        const hasSem = Boolean(
+          serverUrls[`${subj}_1학기`] ||
+            serverUrls[`${subj}_2학기`] ||
+            cached[`${subj}_1학기`] ||
+            cached[`${subj}_2학기`]
+        );
+        if (hasUnified && !hasSem) {
+          next[subj] = 'UNIFIED';
+        }
+      }
+      return next;
+    });
   }, [sheetStatus, isOpen]);
 
   if (!isOpen) return null;
 
   const handleUrlChange = (key: string, val: string) => {
-    setUrls((prev) => ({ ...prev, [key]: val }));
+    setUrls((prev) => {
+      const next = { ...prev, [key]: val };
+      saveLocalSheetUrls(next);
+      return next;
+    });
     if (fieldErrors[key]) {
       setFieldErrors((prev) => {
         const next = { ...prev };
@@ -182,6 +210,23 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
         return next;
       });
     }
+  };
+
+  const handleCopyAllUrls = () => {
+    const list: string[] = [];
+    for (const [k, v] of Object.entries(urls)) {
+      if (typeof v === 'string' && v.trim()) {
+        list.push(`• ${k}: ${v.trim()}`);
+      }
+    }
+    if (list.length === 0) {
+      return;
+    }
+    const text = `[초등 어휘 배틀 - 연동된 구글 시트 링크 목록]\n${list.join('\n')}\n* 이 링크들은 서버 및 브라우저에 영구 보존됩니다.`;
+    navigator.clipboard.writeText(text);
+    setCopiedAll(true);
+    playSound('click');
+    setTimeout(() => setCopiedAll(false), 2500);
   };
 
   // Sync all non-empty subject URLs at once
@@ -548,6 +593,49 @@ adventure\t모험, 신나는 경험\t[ədˈventʃər]\tThey went on a wild adven
                       전체 초기화
                     </button>
                   )}
+                </div>
+              </div>
+
+              {/* Permanent URL Persistence Assurance Banner */}
+              <div className="p-3 sm:p-3.5 rounded-2xl bg-indigo-50/80 border-2 border-indigo-200/80 text-indigo-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-sm text-indigo-900">
+                        시트 주소 영구 보존 활성화
+                      </span>
+                      <span className="text-[10px] bg-indigo-200/80 text-indigo-800 font-bold px-2 py-0.5 rounded-md border border-indigo-300">
+                        서버 & 브라우저 영구 보관
+                      </span>
+                    </div>
+                    <p className="text-xs text-indigo-800/90 mt-0.5 leading-relaxed">
+                      한 번 연동해 두신 구글 시트 주소는 선생님께서 직접 [초기화]하거나 수정하기 전까지 <strong>절대 사라지지 않고 계속 유지</strong>됩니다. (집, 학교 PC, 태블릿 어디서 열어도 동일 유지)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCopyAllUrls}
+                    title="현재 등록된 시트 주소들을 클립보드에 복사합니다"
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-100 text-indigo-800 border border-indigo-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+                  >
+                    {copiedAll ? (
+                      <>
+                        <Check size={13} className="text-emerald-600" />
+                        <span className="text-emerald-700 font-black">복사 완료!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>링크 목록 복사 (백업)</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 
