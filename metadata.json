@@ -1,0 +1,6 @@
+{
+  "name": "초등 어휘 대장 - 실시간 반 퀴즈 배틀",
+  "description": "우리반 아이들이 동시에 접속해 실시간으로 어휘 퀴즈를 풀고 점수와 순위를 함께 확인하는 실시간 교실 퀴즈 웹앱",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
