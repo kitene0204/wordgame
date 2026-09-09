@@ -4,312 +4,312 @@
   "수학_1학기": [
     {
       "word": "분수",
-      "meaning": "分(나눌 분) 數(셈 수)",
-      "hanja": "-",
+      "meaning": "전체를 일정하게 나눈 것 중의 몇 개를 나타내는 수",
+      "hanja": "分(나눌 분) 數(셈 수)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "등분",
-      "meaning": "等(같을 등) 分(나눌 분)",
-      "hanja": "-",
+      "meaning": "수나 양을 같은 크기로 나눔",
+      "hanja": "等(같을 등) 分(나눌 분)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "실생활",
-      "meaning": "實(참 실) 生活(살 생활)",
-      "hanja": "-",
+      "meaning": "실제 살아가는 생활",
+      "hanja": "實(참 실) 生活(살 생활)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "평가",
-      "meaning": "評(평할 평) 價(값 가)",
-      "hanja": "-",
+      "meaning": "어떤 대상의 가치나 수준을 판단함",
+      "hanja": "評(평할 평) 價(값 가)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "입체도형",
-      "meaning": "立(설 립) 體(몸 체) 圖(그림 도) 形(모양 형)",
-      "hanja": "-",
+      "meaning": "길이·넓이·높이가 있는 도형",
+      "hanja": "立(설 립) 體(몸 체) 圖(그림 도) 形(모양 형)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "전개도",
-      "meaning": "展(펼 전) 開(열 개) 圖(그림 도)",
-      "hanja": "-",
+      "meaning": "입체도형을 펼쳐서 나타낸 그림",
+      "hanja": "展(펼 전) 開(열 개) 圖(그림 도)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "합동",
-      "meaning": "合(합할 합) 同(한가지 동)",
-      "hanja": "-",
+      "meaning": "크기와 모양이 서로 똑같음",
+      "hanja": "合(합할 합) 同(한가지 동)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "수직",
-      "meaning": "垂(드리울 수) 直(곧을 직)",
-      "hanja": "-",
+      "meaning": "두 직선이 서로 직각을 이루는 관계",
+      "hanja": "垂(드리울 수) 直(곧을 직)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "분류",
-      "meaning": "分(나눌 분) 類(무리 류)",
-      "hanja": "-",
+      "meaning": "일정한 기준에 따라 가름",
+      "hanja": "分(나눌 분) 類(무리 류)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "조건",
-      "meaning": "條(가지 조) 件(물건 건)",
-      "hanja": "-",
+      "meaning": "어떤 일이 이루어지기 위해 필요한 상태",
+      "hanja": "條(가지 조) 件(물건 건)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "완성",
-      "meaning": "完(완전할 완) 成(이룰 성)",
-      "hanja": "-",
+      "meaning": "전부 이룸",
+      "hanja": "完(완전할 완) 成(이룰 성)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "자연수",
-      "meaning": "自(스스로 자) 然(그럴 연) 數(셈 수)",
-      "hanja": "-",
+      "meaning": "1, 2, 3처럼 셀 수 있는 수",
+      "hanja": "自(스스로 자) 然(그럴 연) 數(셈 수)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "배",
-      "meaning": "倍(곱 배)",
-      "hanja": "-",
+      "meaning": "어떤 수가 다른 수에 몇 번 포함되는지 나타낸 수",
+      "hanja": "倍(곱 배)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "식",
-      "meaning": "式(법 식)",
-      "hanja": "-",
+      "meaning": "수나 문자를 기호로 나타낸 것",
+      "hanja": "式(법 식)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "비",
-      "meaning": "比(견줄 비)",
-      "hanja": "-",
+      "meaning": "두 수의 크기를 비교한 값",
+      "hanja": "比(견줄 비)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "비율",
-      "meaning": "比(견줄 비) 率(비율 률)",
-      "hanja": "-",
+      "meaning": "두 수의 비를 분수나 백분율로 나타낸 것",
+      "hanja": "比(견줄 비) 率(비율 률)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "기준량",
-      "meaning": "基(터 기) 準(준할 준) 量(헤아릴 량)",
-      "hanja": "-",
+      "meaning": "비교나 계산의 기준이 되는 양",
+      "hanja": "基(터 기) 準(준할 준) 量(헤아릴 량)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "백분율",
-      "meaning": "百(일백 백) 分(나눌 분) 率(비율 률)",
-      "hanja": "-",
+      "meaning": "전체를 100으로 하여 나타낸 비율",
+      "hanja": "百(일백 백) 分(나눌 분) 率(비율 률)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "할인율",
-      "meaning": "割(벨 할) 引(끌 인) 率(비율 률)",
-      "hanja": "-",
+      "meaning": "값에서 얼마를 덜어 주는 비율",
+      "hanja": "割(벨 할) 引(끌 인) 率(비율 률)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "이자율",
-      "meaning": "利(이로울 이) 子(아들 자) 率(비율 률)",
-      "hanja": "-",
+      "meaning": "돈을 빌려 쓴 대가로 내는 돈의 비율",
+      "hanja": "利(이로울 이) 子(아들 자) 率(비율 률)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "차이",
-      "meaning": "差(어긋날 차) 異(다를 이)",
-      "hanja": "-",
+      "meaning": "서로 비교했을 때의 다름",
+      "hanja": "差(어긋날 차) 異(다를 이)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "기호",
-      "meaning": "記(기록할 기) 號(부를 호)",
-      "hanja": "-",
+      "meaning": "뜻을 나타내는 일정한 부호",
+      "hanja": "記(기록할 기) 號(부를 호)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "양",
-      "meaning": "量(헤아릴 량)",
-      "hanja": "-",
+      "meaning": "수량이나 크기",
+      "hanja": "量(헤아릴 량)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "선호도",
-      "meaning": "選(가릴 선) 好(좋을 호) 度(법도 도)",
-      "hanja": "-",
+      "meaning": "어떤 것을 더 좋아하는 정도",
+      "hanja": "選(가릴 선) 好(좋을 호) 度(법도 도)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "원액",
-      "meaning": "原(근원 원) 液(진 액)",
-      "hanja": "-",
+      "meaning": "물에 타기 전의 진한 액체",
+      "hanja": "原(근원 원) 液(진 액)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "타율",
-      "meaning": "打(칠 타) 率(비율 률)",
-      "hanja": "-",
+      "meaning": "야구에서 안타를 친 횟수를 타석에 들어선 횟수로 나눈 백분율",
+      "hanja": "打(칠 타) 率(비율 률)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "회",
-      "meaning": "回(돌 회)",
-      "hanja": "-",
+      "meaning": "어떤 일이 이루어진 횟수",
+      "hanja": "回(돌 회)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "목표",
-      "meaning": "目(눈 목) 標(표할 표)",
-      "hanja": "-",
+      "meaning": "이루려고 하는 목적",
+      "hanja": "目(눈 목) 標(표할 표)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "사실",
-      "meaning": "事(일 사) 實(열매 실)",
-      "hanja": "-",
+      "meaning": "실제로 있었던 일",
+      "hanja": "事(일 사) 實(열매 실)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "부분",
-      "meaning": "部(나눌 부) 分(나눌 분)",
-      "hanja": "-",
+      "meaning": "전체 가운데 일정한 한쪽",
+      "hanja": "部(나눌 부) 分(나눌 분)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "계산기",
-      "meaning": "計(셀 계) 算(셈 산) 機(틀 기)",
-      "hanja": "-",
+      "meaning": "계산하는 기계",
+      "hanja": "計(셀 계) 算(셈 산) 機(틀 기)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "정보",
-      "meaning": "情(뜻 정) 報(알릴 보)",
-      "hanja": "-",
+      "meaning": "어떤 사실에 대한 자료",
+      "hanja": "情(뜻 정) 報(알릴 보)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "수집",
-      "meaning": "蒐(모을 수) 集(모을 집)",
-      "hanja": "-",
+      "meaning": "거두어 모음",
+      "hanja": "蒐(모을 수) 集(모을 집)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "해석",
-      "meaning": "解(풀 해) 釋(풀 석)",
-      "hanja": "-",
+      "meaning": "뜻을 풀어 설명함",
+      "hanja": "解(풀 해) 釋(풀 석)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "기타",
-      "meaning": "其他(그 밖의 다른 것 기 타)",
-      "hanja": "-",
+      "meaning": "그 밖의 다른 것",
+      "hanja": "其他(그 밖의 다른 것 기 타)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "공간",
-      "meaning": "空(빌 공) 間(사이 간)",
-      "hanja": "-",
+      "meaning": "넓게 퍼져 있는 자리",
+      "hanja": "空(빌 공) 間(사이 간)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "단위",
-      "meaning": "單(홑 단) 位(자리 위)",
-      "hanja": "-",
+      "meaning": "어떤 수량을 세는 기준",
+      "hanja": "單(홑 단) 位(자리 위)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "측정",
-      "meaning": "測(잴 측) 定(정할 정)",
-      "hanja": "-",
+      "meaning": "수나 양을 재어 정함",
+      "hanja": "測(잴 측) 定(정할 정)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
     },
     {
       "word": "해결",
-      "meaning": "解(풀 해) 決(결단할 결)",
-      "hanja": "-",
+      "meaning": "문제를 풀어 없앰",
+      "hanja": "解(풀 해) 決(결단할 결)",
       "subject": "수학",
       "semester": "1학기",
       "example": ""
@@ -319,5 +319,6 @@
   "사회_1학기": [],
   "사회_2학기": [],
   "영어_1학기": [],
-  "영어_2학기": []
+  "영어_2학기": [],
+  "테스트": []
 }

@@ -1,19 +1,53 @@
 import { SheetSyncStatus } from '../types';
 
+async function fetchWithRetry(
+  url: string,
+  options?: RequestInit,
+  retries = 2,
+  delayMs = 600
+): Promise<Response> {
+  let lastError: any = null;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (
+        !res.ok &&
+        (res.status === 502 || res.status === 503 || res.status === 504 || res.status === 404)
+      ) {
+        if (i < retries) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs * (i + 1)));
+          continue;
+        }
+      }
+      return res;
+    } catch (err: any) {
+      lastError = err;
+      if (i < retries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs * (i + 1)));
+      }
+    }
+  }
+  throw lastError || new Error('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+}
+
 async function safeParseResponse(res: Response): Promise<any> {
   const text = await res.text();
   let data: any = null;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    // Non-JSON response (e.g., Cloud Run / proxy 502/503/504 HTML error page)
-    if (!res.ok) {
-      if (res.status === 502 || res.status === 503 || res.status === 504) {
-        throw new Error('서버가 일시적으로 연결 준비 중입니다. 잠시 후 다시 시도해주세요.');
+  if (text && text.trim()) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      if (!res.ok) {
+        if (res.status === 502 || res.status === 503 || res.status === 504) {
+          throw new Error('서버가 일시적으로 재시작 중입니다. 잠시 후 다시 시도해주세요.');
+        }
+        if (res.status === 404) {
+          throw new Error('서버 연결을 확인 중입니다. 다시 한 번 동기화 버튼을 눌러주세요.');
+        }
+        throw new Error(`서버 응답 오류 (${res.status}). 다시 시도해주세요.`);
       }
-      throw new Error(`서버 오류가 발생했습니다 (${res.status}). 잠시 후 다시 시도해주세요.`);
+      throw new Error('서버 응답 형식이 올바르지 않습니다.');
     }
-    throw new Error('서버 응답 형식이 올바르지 않습니다.');
   }
 
   if (!res.ok) {
@@ -23,14 +57,14 @@ async function safeParseResponse(res: Response): Promise<any> {
 }
 
 export async function fetchSheetStatus(): Promise<SheetSyncStatus> {
-  const res = await fetch('/api/sheet/status');
+  const res = await fetchWithRetry('/api/sheet/status');
   return safeParseResponse(res);
 }
 
 export async function syncMultipleGoogleSheets(
   sheetUrls: Record<string, string>
 ): Promise<{ sheetStatus: SheetSyncStatus; errors?: Record<string, string> }> {
-  const res = await fetch('/api/sheet/sync', {
+  const res = await fetchWithRetry('/api/sheet/sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sheetUrls }),
@@ -43,7 +77,7 @@ export async function syncSingleSubjectSheet(
   keyOrSubject: string,
   sheetUrl: string
 ): Promise<SheetSyncStatus> {
-  const res = await fetch('/api/sheet/sync', {
+  const res = await fetchWithRetry('/api/sheet/sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key: keyOrSubject, subject: keyOrSubject, sheetUrl }),
@@ -53,7 +87,7 @@ export async function syncSingleSubjectSheet(
 }
 
 export async function syncGoogleSheet(sheetUrl: string): Promise<SheetSyncStatus> {
-  const res = await fetch('/api/sheet/sync', {
+  const res = await fetchWithRetry('/api/sheet/sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sheetUrl }),
@@ -67,7 +101,7 @@ export async function refreshGoogleSheets(): Promise<{
   updated: number;
   errors?: Record<string, string>;
 }> {
-  const res = await fetch('/api/sheet/refresh', {
+  const res = await fetchWithRetry('/api/sheet/refresh', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   });
@@ -76,7 +110,7 @@ export async function refreshGoogleSheets(): Promise<{
 }
 
 export async function resetGoogleSheet(keyOrSubject?: string): Promise<SheetSyncStatus> {
-  const res = await fetch('/api/sheet/reset', {
+  const res = await fetchWithRetry('/api/sheet/reset', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key: keyOrSubject, subject: keyOrSubject }),
