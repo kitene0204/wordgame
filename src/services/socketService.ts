@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { RoomState, SubjectType } from '../types';
+import { RoomState, SemesterType, SubjectType } from '../types';
 
 let socket: Socket | null = null;
 
@@ -19,10 +19,11 @@ export function createRoom(
   avatar: string,
   subject: SubjectType,
   numQuestions: number,
-  timeLimitSec: number
+  timeLimitSec: number,
+  semester: SemesterType = '전체'
 ) {
   const s = getSocket();
-  s.emit('create_room', { hostName, avatar, subject, numQuestions, timeLimitSec });
+  s.emit('create_room', { hostName, avatar, subject, semester, numQuestions, timeLimitSec });
 }
 
 export function joinRoom(roomCode: string, playerName: string, avatar: string) {
@@ -30,9 +31,14 @@ export function joinRoom(roomCode: string, playerName: string, avatar: string) {
   s.emit('join_room', { roomCode, playerName, avatar });
 }
 
-export function updateRoomSettings(subject: SubjectType, numQuestions: number, timeLimitSec: number) {
+export function updateRoomSettings(
+  subject: SubjectType,
+  numQuestions: number,
+  timeLimitSec: number,
+  semester: SemesterType = '전체'
+) {
   const s = getSocket();
-  s.emit('update_settings', { subject, numQuestions, timeLimitSec });
+  s.emit('update_settings', { subject, semester, numQuestions, timeLimitSec });
 }
 
 export function startGame() {

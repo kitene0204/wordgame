@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Play, Sparkles, BookOpen, Clock, Settings, HelpCircle, Trophy, Flame, FileSpreadsheet } from 'lucide-react';
-import { SubjectType, SheetSyncStatus } from '../types';
+import { SubjectType, SemesterType, SheetSyncStatus } from '../types';
 import { playSound } from '../utils/audio';
 
 interface HomeScreenProps {
   onJoinRoom: (roomCode: string, playerName: string, avatar: string) => void;
-  onCreateRoom: (hostName: string, avatar: string, subject: SubjectType, numQuestions: number, timeLimitSec: number) => void;
-  onStartSolo: (subject: SubjectType, numQuestions: number) => void;
+  onCreateRoom: (
+    hostName: string,
+    avatar: string,
+    subject: SubjectType,
+    numQuestions: number,
+    timeLimitSec: number,
+    semester: SemesterType
+  ) => void;
+  onStartSolo: (subject: SubjectType, numQuestions: number, semester: SemesterType) => void;
   initialRoomCode?: string;
   onOpenSheetModal?: () => void;
   sheetStatus?: SheetSyncStatus | null;
@@ -34,11 +41,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [teacherName, setTeacherName] = useState('선생님');
   const [teacherAvatar, setTeacherAvatar] = useState('🎓');
   const [roomSubject, setRoomSubject] = useState<SubjectType>('전체');
+  const [roomSemester, setRoomSemester] = useState<SemesterType>('전체');
   const [roomNumQuestions, setRoomNumQuestions] = useState<number>(10);
   const [roomTimeLimit, setRoomTimeLimit] = useState<number>(15);
 
   // Solo State
   const [soloSujbect, setSoloSubject] = useState<SubjectType>('전체');
+  const [soloSemester, setSoloSemester] = useState<SemesterType>('전체');
   const [soloNumQuestions, setSoloNumQuestions] = useState<number>(10);
 
   useEffect(() => {
@@ -71,13 +80,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       teacherAvatar,
       roomSubject,
       roomNumQuestions,
-      roomTimeLimit
+      roomTimeLimit,
+      roomSemester
     );
   };
 
   const handleStartSoloGame = () => {
     playSound('click');
-    onStartSolo(soloSujbect, soloNumQuestions);
+    onStartSolo(soloSujbect, soloNumQuestions, soloSemester);
   };
 
   return (
@@ -251,7 +261,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                           <span>선생님 구글 시트 단어장 연동</span>
                           {sheetStatus?.isCustomSheet ? (
                             <span className="bg-emerald-200 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">
-                              연동 중 ({sheetStatus.wordCount}단어)
+                              과목별 연동 중 ({sheetStatus.wordCount}단어)
                             </span>
                           ) : (
                             <span className="bg-slate-200 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-bold">
@@ -260,7 +270,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                           )}
                         </div>
                         <p className="text-[11px] text-emerald-700 font-medium">
-                          국어·수학·사회·영어 단어를 시트에서 수정하면 퀴즈에 즉시 반영됩니다!
+                          국어·수학·사회·영어 과목별 시트 링크를 각각 연결하여 맞춤 퀴즈를 만듭니다!
                         </p>
                       </div>
                     </div>
@@ -312,6 +322,42 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                           }`}
                         >
                           {subj}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Semester Selection */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-bold text-slate-700">
+                        학기 선택
+                      </label>
+                      <span className="text-[11px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full">
+                        {roomSemester === '전체' ? '1·2학기 전체 통합 출제' : `${roomSemester} 어휘만 출제`}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: '전체' as SemesterType, label: '전체 (1·2학기 통합)', icon: '🌟' },
+                        { id: '1학기' as SemesterType, label: '1학기', icon: '🌸' },
+                        { id: '2학기' as SemesterType, label: '2학기', icon: '🍁' },
+                      ].map((sem) => (
+                        <button
+                          key={sem.id}
+                          type="button"
+                          onClick={() => {
+                            playSound('click');
+                            setRoomSemester(sem.id);
+                          }}
+                          className={`py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition-all border-b-3 cursor-pointer flex items-center justify-center gap-1.5 ${
+                            roomSemester === sem.id
+                              ? 'bg-amber-400 text-amber-950 border-amber-600 translate-y-0.5 shadow-xs'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-amber-50'
+                          }`}
+                        >
+                          <span>{sem.icon}</span>
+                          <span>{sem.label}</span>
                         </button>
                       ))}
                     </div>
@@ -414,6 +460,42 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       }`}
                     >
                       {subj}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Semester Selection */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-bold text-slate-700">
+                    공부할 학기 선택
+                  </label>
+                  <span className="text-xs text-emerald-800 font-bold bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    {soloSemester === '전체' ? '1·2학기 전체 통합' : `${soloSemester} 단어만`}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: '전체' as SemesterType, label: '전체 (1·2학기)', icon: '🌟' },
+                    { id: '1학기' as SemesterType, label: '1학기', icon: '🌸' },
+                    { id: '2학기' as SemesterType, label: '2학기', icon: '🍁' },
+                  ].map((sem) => (
+                    <button
+                      key={sem.id}
+                      type="button"
+                      onClick={() => {
+                        playSound('click');
+                        setSoloSemester(sem.id);
+                      }}
+                      className={`py-2.5 rounded-2xl font-bold text-sm sm:text-base transition-all border-b-3 cursor-pointer flex items-center justify-center gap-1.5 ${
+                        soloSemester === sem.id
+                          ? 'bg-emerald-400 text-emerald-950 border-emerald-600 translate-y-0.5 shadow-xs'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <span>{sem.icon}</span>
+                      <span>{sem.label}</span>
                     </button>
                   ))}
                 </div>

@@ -100,20 +100,26 @@ export function normalizeSubjectName(raw: string): string {
 /**
  * Parses raw CSV into array of VocabItem
  */
-export function parseCsvToVocab(csvText: string): VocabItem[] {
+export function parseCsvToVocab(
+  csvText: string,
+  defaultSubject?: string,
+  defaultSemester?: string
+): VocabItem[] {
   const rows = parseCsvRows(csvText);
   if (rows.length === 0) return [];
 
   const headerRow = rows[0].map((h) => h.toLowerCase().replace(/\s+/g, ''));
 
   let subjectCol = -1;
+  let semesterCol = -1;
   let wordCol = -1;
   let meaningCol = -1;
   let hanjaCol = -1;
   let exampleCol = -1;
 
   headerRow.forEach((col, idx) => {
-    if (/과목|구분|교과|분야|subject|category/.test(col)) subjectCol = idx;
+    if (/학기|semester|term/.test(col)) semesterCol = idx;
+    else if (/과목|구분|교과|분야|subject|category/.test(col)) subjectCol = idx;
     else if (/단어|낱말|어휘|영어단어|영단어|word|term|vocab/.test(col)) wordCol = idx;
     else if (/뜻|의미|설명|풀이|우리말|정의|meaning|definition/.test(col)) meaningCol = idx;
     else if (/한자|발음|발음기호|음훈|hanja|pronunciation/.test(col)) hanjaCol = idx;
@@ -125,11 +131,19 @@ export function parseCsvToVocab(csvText: string): VocabItem[] {
 
   // Fallback column positions if standard headers weren't named
   if (!isHeaderValid) {
-    subjectCol = 0;
-    wordCol = 1;
-    meaningCol = 2;
-    hanjaCol = 3;
-    exampleCol = 4;
+    if (defaultSubject) {
+      // In subject-specific sheet, column 0 is usually word, 1 is meaning, etc.
+      wordCol = 0;
+      meaningCol = 1;
+      hanjaCol = 2;
+      exampleCol = 3;
+    } else {
+      subjectCol = 0;
+      wordCol = 1;
+      meaningCol = 2;
+      hanjaCol = 3;
+      exampleCol = 4;
+    }
   }
 
   const items: VocabItem[] = [];
@@ -138,7 +152,21 @@ export function parseCsvToVocab(csvText: string): VocabItem[] {
     const row = rows[i];
     if (!row || row.length < 2) continue;
 
-    const rawSubject = (subjectCol >= 0 && row[subjectCol]) ? row[subjectCol] : '국어';
+    const rawSubject =
+      (subjectCol >= 0 && row[subjectCol] && row[subjectCol].trim())
+        ? row[subjectCol]
+        : (defaultSubject || '국어');
+
+    let semester: '1학기' | '2학기' = (defaultSemester === '2학기' ? '2학기' : '1학기');
+    if (semesterCol >= 0 && row[semesterCol]) {
+      const semVal = row[semesterCol].trim();
+      if (/2|2학기|second/i.test(semVal)) {
+        semester = '2학기';
+      } else if (/1|1학기|first/i.test(semVal)) {
+        semester = '1학기';
+      }
+    }
+
     const word = (wordCol >= 0 && row[wordCol]) ? row[wordCol].trim() : '';
     const meaning = (meaningCol >= 0 && row[meaningCol]) ? row[meaningCol].trim() : '';
     const hanja = (hanjaCol >= 0 && row[hanjaCol]) ? row[hanjaCol].trim() : '';
@@ -147,7 +175,15 @@ export function parseCsvToVocab(csvText: string): VocabItem[] {
     // Must have at least word and meaning
     if (!word || !meaning) continue;
     // Skip if it looks like an unparsed header row
-    if (word === '단어' || word === '낱말' || meaning === '뜻') continue;
+    if (
+      word === '단어' ||
+      word === '낱말' ||
+      word.toLowerCase() === 'word' ||
+      meaning === '뜻' ||
+      meaning.toLowerCase() === 'meaning'
+    ) {
+      continue;
+    }
 
     const subject = normalizeSubjectName(rawSubject);
 
@@ -156,6 +192,7 @@ export function parseCsvToVocab(csvText: string): VocabItem[] {
       meaning,
       hanja: hanja || (subject === '영어' ? '' : '-'),
       subject,
+      semester,
       example: example || '',
     });
   }
@@ -166,7 +203,11 @@ export function parseCsvToVocab(csvText: string): VocabItem[] {
 /**
  * Fetches and parses a Google Sheet from a given URL
  */
-export async function fetchGoogleSheetVocab(sheetUrl: string): Promise<{
+export async function fetchGoogleSheetVocab(
+  sheetUrl: string,
+  defaultSubject?: string,
+  defaultSemester?: string
+): Promise<{
   items: VocabItem[];
   subjectCounts: Record<string, number>;
   csvUrl: string;
@@ -196,9 +237,9 @@ export async function fetchGoogleSheetVocab(sheetUrl: string): Promise<{
     );
   }
 
-  const items = parseCsvToVocab(text);
+  const items = parseCsvToVocab(text, defaultSubject, defaultSemester);
   if (items.length === 0) {
-    throw new Error('시트에서 유효한 단어 데이터를 찾지 못했습니다. 열 제목(과목, 단어, 뜻)을 확인해주세요.');
+    throw new Error('시트에서 유효한 단어 데이터를 찾지 못했습니다. 열 제목(단어, 뜻 등)을 확인해주세요.');
   }
 
   const subjectCounts: Record<string, number> = {};

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Users, Copy, Check, Play, Settings, Sparkles, BookOpen, Clock, ShieldCheck, FileSpreadsheet, RefreshCw } from 'lucide-react';
-import { Player, SubjectType, SheetSyncStatus } from '../types';
+import { Player, SubjectType, SemesterType, SheetSyncStatus } from '../types';
 import { playSound } from '../utils/audio';
 
 interface HostLobbyProps {
   roomCode: string;
   players: Record<string, Player>;
   subject: SubjectType;
+  semester: SemesterType;
   numQuestions: number;
   timeLimitSec: number;
-  onUpdateSettings: (subject: SubjectType, numQuestions: number, timeLimitSec: number) => void;
+  onUpdateSettings: (subject: SubjectType, numQuestions: number, timeLimitSec: number, semester: SemesterType) => void;
   onStartGame: () => void;
   onOpenSheetModal?: () => void;
   sheetStatus?: SheetSyncStatus | null;
@@ -19,6 +20,7 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
   roomCode,
   players,
   subject,
+  semester,
   numQuestions,
   timeLimitSec,
   onUpdateSettings,
@@ -100,6 +102,9 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
             <span className="bg-sky-100 text-sky-800 px-3 py-1 rounded-xl border border-sky-200">
               과목: {subject}
             </span>
+            <span className="bg-amber-100 text-amber-900 px-3 py-1 rounded-xl border border-amber-200">
+              학기: {semester === '전체' ? '1·2학기 통합' : semester}
+            </span>
             <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-xl border border-emerald-200">
               {numQuestions}문제
             </span>
@@ -138,7 +143,7 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
                   {(['전체', '국어', '수학', '사회', '영어'] as SubjectType[]).map((subj) => (
                     <button
                       key={subj}
-                      onClick={() => onUpdateSettings(subj, numQuestions, timeLimitSec)}
+                      onClick={() => onUpdateSettings(subj, numQuestions, timeLimitSec, semester)}
                       className={`py-1.5 rounded-lg text-xs sm:text-sm font-bold cursor-pointer ${
                         subject === subj ? 'bg-amber-400 text-amber-950 shadow-xs' : 'bg-white border'
                       }`}
@@ -148,6 +153,28 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
                   ))}
                 </div>
               </div>
+
+              <div>
+                <span className="text-xs font-bold text-slate-600 block mb-1">학기 선택</span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: '전체' as SemesterType, label: '전체 (1·2학기 통합)' },
+                    { id: '1학기' as SemesterType, label: '1학기' },
+                    { id: '2학기' as SemesterType, label: '2학기' },
+                  ].map((sem) => (
+                    <button
+                      key={sem.id}
+                      onClick={() => onUpdateSettings(subject, numQuestions, timeLimitSec, sem.id)}
+                      className={`py-1.5 rounded-lg text-xs sm:text-sm font-bold cursor-pointer ${
+                        semester === sem.id ? 'bg-amber-400 text-amber-950 shadow-xs' : 'bg-white border'
+                      }`}
+                    >
+                      {sem.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="text-xs font-bold text-slate-600 block mb-1">문항 수</span>
@@ -155,7 +182,7 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
                     {[5, 10, 15, 20].map((num) => (
                       <button
                         key={num}
-                        onClick={() => onUpdateSettings(subject, num, timeLimitSec)}
+                        onClick={() => onUpdateSettings(subject, num, timeLimitSec, semester)}
                         className={`py-1 rounded-lg text-xs font-bold cursor-pointer ${
                           numQuestions === num ? 'bg-sky-400 text-white' : 'bg-white border'
                         }`}
@@ -171,7 +198,7 @@ export const HostLobby: React.FC<HostLobbyProps> = ({
                     {[10, 15, 20].map((sec) => (
                       <button
                         key={sec}
-                        onClick={() => onUpdateSettings(subject, numQuestions, sec)}
+                        onClick={() => onUpdateSettings(subject, numQuestions, sec, semester)}
                         className={`py-1 rounded-lg text-xs font-bold cursor-pointer ${
                           timeLimitSec === sec ? 'bg-rose-400 text-white' : 'bg-white border'
                         }`}

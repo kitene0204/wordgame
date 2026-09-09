@@ -1,14 +1,17 @@
 import { VocabItem } from './data/vocabData';
 
 export type SubjectType = '전체' | '국어' | '수학' | '사회' | '영어' | '과학' | string;
+export type SemesterType = '전체' | '1학기' | '2학기';
 export type QuizQuestionType = 'hanjaToWord' | 'wordToHanja' | 'meaningToWord' | 'wordToMeaning' | 'sentenceFillBlank';
 
 export interface SheetSyncStatus {
   isCustomSheet: boolean;
-  sheetUrl: string;
+  sheetUrl?: string;
+  sheetUrls: Record<string, string>;
   lastSyncedAt: string | null;
   wordCount: number;
   subjectCounts: Record<string, number>;
+  subjectSemesterCounts?: Record<string, number>;
   availableSubjects: string[];
 }
 
@@ -60,6 +63,7 @@ export interface RoomState {
   hostId: string;
   status: RoomStatus;
   subject: SubjectType;
+  semester: SemesterType;
   numQuestions: number;
   timeLimitSec: number;
   currentIndex: number;

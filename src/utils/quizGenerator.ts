@@ -1,5 +1,5 @@
 import { VOCAB_DATA, VocabItem } from '../data/vocabData';
-import { QuizQuestion, QuizQuestionType, SubjectType } from '../types';
+import { QuizQuestion, QuizQuestionType, SemesterType, SubjectType } from '../types';
 
 export function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
@@ -13,15 +13,25 @@ export function shuffle<T>(array: T[]): T[] {
 export function generateQuizQuestions(
   subject: SubjectType,
   count: number,
-  customPool?: VocabItem[]
+  customPool?: VocabItem[],
+  semester?: SemesterType
 ): QuizQuestion[] {
   const basePool = customPool && customPool.length > 0 ? customPool : VOCAB_DATA;
 
   let pool = basePool;
   if (subject !== '전체') {
-    pool = basePool.filter((item) => item.subject === subject);
-    // If filtered pool is empty (e.g. newly added subject with no matching words), fallback to base
-    if (pool.length === 0) pool = basePool;
+    const subjectFiltered = basePool.filter((item) => item.subject === subject);
+    if (subjectFiltered.length > 0) {
+      pool = subjectFiltered;
+    }
+  }
+
+  // Filter by semester if specific semester is chosen
+  if (semester && semester !== '전체') {
+    const semesterFiltered = pool.filter((item) => item.semester === semester);
+    if (semesterFiltered.length > 0) {
+      pool = semesterFiltered;
+    }
   }
 
   // Fallback if requested count is larger than pool

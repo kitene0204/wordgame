@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Home, Star, CheckCircle2, XCircle, RotateCcw, ArrowRight, Trophy, BookOpen, Smile } from 'lucide-react';
-import { QuizQuestion, SubjectType } from '../types';
+import { QuizQuestion, SubjectType, SemesterType } from '../types';
 import { generateQuizQuestions } from '../utils/quizGenerator';
 import { playSound } from '../utils/audio';
 
 interface SoloQuizScreenProps {
   subject: SubjectType;
+  semester?: SemesterType;
   numQuestions: number;
   onGoHome: () => void;
 }
@@ -18,11 +19,13 @@ interface UserAnswerRecord {
 
 export const SoloQuizScreen: React.FC<SoloQuizScreenProps> = ({
   subject,
+  semester = '전체' as SemesterType,
   numQuestions,
   onGoHome,
 }) => {
+  const currentSemester: SemesterType = semester;
   const [questions, setQuestions] = useState<QuizQuestion[]>(() =>
-    generateQuizQuestions(subject, numQuestions)
+    generateQuizQuestions(subject, numQuestions, undefined, currentSemester)
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -68,7 +71,7 @@ export const SoloQuizScreen: React.FC<SoloQuizScreenProps> = ({
 
   const handleRestart = () => {
     playSound('click');
-    const newQuestions = generateQuizQuestions(subject, numQuestions);
+    const newQuestions = generateQuizQuestions(subject, numQuestions, undefined, currentSemester);
     setQuestions(newQuestions);
     setCurrentIndex(0);
     setScore(0);
@@ -98,7 +101,7 @@ export const SoloQuizScreen: React.FC<SoloQuizScreenProps> = ({
           {/* Result Card */}
           <div className="bg-white rounded-3xl shadow-xl p-8 sm:p-10 text-center border-4 border-pink-400 relative overflow-hidden">
             <h2 className="text-pink-600 text-2xl font-bold mb-2">
-              ✨ {subject === '전체' ? '종합' : subject} 어휘 연습 결과 ✨
+              ✨ {subject === '전체' ? '종합' : subject} ({semester === '전체' ? '1·2학기 통합' : semester}) 어휘 연습 결과 ✨
             </h2>
 
             <div className="text-6xl sm:text-7xl font-black text-pink-600 my-4 drop-shadow-xs font-mono">
@@ -181,7 +184,7 @@ export const SoloQuizScreen: React.FC<SoloQuizScreenProps> = ({
             <Star className="text-yellow-400" fill="currentColor" size={18} />
             문제 {currentIndex + 1} / {questions.length}
             <span className="ml-2 text-xs bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300 text-emerald-800">
-              {currentQ.item.subject}
+              {currentQ.item.subject}{currentQ.item.semester ? ` · ${currentQ.item.semester}` : ''}
             </span>
           </span>
           <span className="text-emerald-700 font-bold text-sm">

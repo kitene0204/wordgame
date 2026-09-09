@@ -6,13 +6,14 @@ import { createServer as createViteServer } from 'vite';
 import { generateQuizQuestions } from './src/utils/quizGenerator';
 import { VOCAB_DATA, VocabItem } from './src/data/vocabData';
 import { fetchGoogleSheetVocab } from './src/utils/googleSheetSync';
-import { Player, PlayerAnswerRecord, QuestionHistoryItem, QuizQuestion, RoomState, RoomStatus, SheetSyncStatus, SubjectType } from './src/types';
+import { Player, PlayerAnswerRecord, QuestionHistoryItem, QuizQuestion, RoomState, RoomStatus, SemesterType, SheetSyncStatus, SubjectType } from './src/types';
 
 interface ServerRoom {
   roomCode: string;
   hostId: string;
   status: RoomStatus;
   subject: SubjectType;
+  semester: SemesterType;
   numQuestions: number;
   timeLimitSec: number;
   questions: QuizQuestion[];
@@ -42,14 +43,116 @@ function getSubjectCounts(vocabList: VocabItem[]): Record<string, number> {
   return counts;
 }
 
+function getSubjectSemesterCounts(vocabList: VocabItem[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  vocabList.forEach((item) => {
+    const sem = item.semester === '2학기' ? '2학기' : '1학기';
+    const key = `${item.subject}_${sem}`;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return counts;
+}
+
+// Stores custom sheets by subject_semester key (e.g. '국어_1학기', '국어_2학기', or '국어')
+const customVocabsByKey: Record<string, VocabItem[]> = {
+  '국어_1학기': [],
+  '국어_2학기': [],
+  '수학_1학기': [],
+  '수학_2학기': [],
+  '사회_1학기': [],
+  '사회_2학기': [],
+  '영어_1학기': [],
+  '영어_2학기': [],
+};
+
+const sheetUrlsByKey: Record<string, string> = {
+  '국어_1학기': '',
+  '국어_2학기': '',
+  '수학_1학기': '',
+  '수학_2학기': '',
+  '사회_1학기': '',
+  '사회_2학기': '',
+  '영어_1학기': '',
+  '영어_2학기': '',
+};
+
+function rebuildActiveVocabList(): VocabItem[] {
+  const result: VocabItem[] = [];
+  const standardSubjects = ['국어', '수학', '사회', '영어'];
+
+  for (const subj of standardSubjects) {
+    const sem1Key = `${subj}_1학기`;
+    const sem2Key = `${subj}_2학기`;
+    const generalKey = subj;
+
+    const custom1 = customVocabsByKey[sem1Key];
+    const custom2 = customVocabsByKey[sem2Key];
+    const customGen = customVocabsByKey[generalKey];
+
+    // 1학기
+    if (custom1 && custom1.length > 0) {
+      result.push(...custom1);
+    } else if (customGen && customGen.filter((v) => v.semester === '1학기').length > 0) {
+      result.push(...customGen.filter((v) => v.semester === '1학기'));
+    } else {
+      result.push(...VOCAB_DATA.filter((v) => v.subject === subj && v.semester === '1학기'));
+    }
+
+    // 2학기
+    if (custom2 && custom2.length > 0) {
+      result.push(...custom2);
+    } else if (customGen && customGen.filter((v) => v.semester === '2학기').length > 0) {
+      result.push(...customGen.filter((v) => v.semester === '2학기'));
+    } else {
+      result.push(...VOCAB_DATA.filter((v) => v.subject === subj && v.semester === '2학기'));
+    }
+  }
+
+  // Include any extra subject entries
+  for (const [key, items] of Object.entries(customVocabsByKey)) {
+    const isStandard = standardSubjects.some(
+      (s) => key === s || key === `${s}_1학기` || key === `${s}_2학기`
+    );
+    if (!isStandard && items && items.length > 0) {
+      result.push(...items);
+    }
+  }
+
+  return result;
+}
+
 let activeVocabList: VocabItem[] = [...VOCAB_DATA];
+
+function updateSheetStatus(): SheetSyncStatus {
+  activeVocabList = rebuildActiveVocabList();
+  const counts = getSubjectCounts(activeVocabList);
+  const semCounts = getSubjectSemesterCounts(activeVocabList);
+  const isCustom = Object.values(customVocabsByKey).some((items) => items && items.length > 0);
+  const available = ['전체', ...Object.keys(counts)];
+
+  sheetStatus = {
+    isCustomSheet: isCustom,
+    sheetUrl: Object.values(sheetUrlsByKey).find((u) => Boolean(u)) || '',
+    sheetUrls: { ...sheetUrlsByKey },
+    lastSyncedAt: isCustom ? new Date().toISOString() : null,
+    wordCount: activeVocabList.length,
+    subjectCounts: counts,
+    subjectSemesterCounts: semCounts,
+    availableSubjects: Array.from(new Set(available)),
+  };
+
+  return sheetStatus;
+}
+
 let sheetStatus: SheetSyncStatus = {
   isCustomSheet: false,
   sheetUrl: '',
+  sheetUrls: { ...sheetUrlsByKey },
   lastSyncedAt: null,
   wordCount: VOCAB_DATA.length,
   subjectCounts: getSubjectCounts(VOCAB_DATA),
-  availableSubjects: ['전체', '국어', '수학', '사회', '영어', '과학'],
+  subjectSemesterCounts: getSubjectSemesterCounts(VOCAB_DATA),
+  availableSubjects: ['전체', '국어', '수학', '사회', '영어'],
 };
 
 const io = new Server(server, {
@@ -88,6 +191,7 @@ function getPublicRoomState(room: ServerRoom): RoomState {
     hostId: room.hostId,
     status: room.status,
     subject: room.subject,
+    semester: room.semester || '전체',
     numQuestions: room.numQuestions,
     timeLimitSec: room.timeLimitSec,
     currentIndex: room.currentIndex,
@@ -190,6 +294,7 @@ io.on('connection', (socket: Socket) => {
   // 1. Create Room (Host)
   socket.on('create_room', (data: {
     subject?: SubjectType;
+    semester?: SemesterType;
     numQuestions?: number;
     timeLimitSec?: number;
     hostName?: string;
@@ -197,6 +302,7 @@ io.on('connection', (socket: Socket) => {
   }) => {
     const roomCode = generateRoomCode();
     const subject = data.subject || '전체';
+    const semester = data.semester || '전체';
     const numQuestions = data.numQuestions || 10;
     const timeLimitSec = data.timeLimitSec || 15;
     const hostName = (data.hostName || '선생님').trim();
@@ -222,6 +328,7 @@ io.on('connection', (socket: Socket) => {
       hostId: socket.id,
       status: 'LOBBY',
       subject,
+      semester,
       numQuestions,
       timeLimitSec,
       questions: [],
@@ -287,12 +394,13 @@ io.on('connection', (socket: Socket) => {
   });
 
   // 3. Update Room Settings in Lobby (Host)
-  socket.on('update_settings', (data: { subject?: SubjectType; numQuestions?: number; timeLimitSec?: number }) => {
+  socket.on('update_settings', (data: { subject?: SubjectType; semester?: SemesterType; numQuestions?: number; timeLimitSec?: number }) => {
     const roomCode = (socket as any).roomCode;
     const room = rooms.get(roomCode);
     if (!room || room.hostId !== socket.id || room.status !== 'LOBBY') return;
 
     if (data.subject) room.subject = data.subject;
+    if (data.semester) room.semester = data.semester;
     if (data.numQuestions) room.numQuestions = data.numQuestions;
     if (data.timeLimitSec) room.timeLimitSec = data.timeLimitSec;
 
@@ -305,8 +413,8 @@ io.on('connection', (socket: Socket) => {
     const room = rooms.get(roomCode);
     if (!room || room.hostId !== socket.id) return;
 
-    // Generate questions using active vocabulary list (synced from Google Sheet if connected)
-    const generated = generateQuizQuestions(room.subject, room.numQuestions, activeVocabList);
+    // Generate questions using active vocabulary list (synced from Google Sheet if connected) and selected semester
+    const generated = generateQuizQuestions(room.subject, room.numQuestions, activeVocabList, room.semester);
     room.questions = generated;
     room.numQuestions = generated.length;
     room.currentIndex = 0;
@@ -487,28 +595,122 @@ app.get('/api/sheet/status', (req, res) => {
   res.json(sheetStatus);
 });
 
+function parseSubjectSemesterKey(key: string): { subject: string; semester?: '1학기' | '2학기' } {
+  if (key.includes('_2학기')) {
+    return { subject: key.replace('_2학기', ''), semester: '2학기' };
+  }
+  if (key.includes('_1학기')) {
+    return { subject: key.replace('_1학기', ''), semester: '1학기' };
+  }
+  return { subject: key };
+}
+
 app.post('/api/sheet/sync', async (req, res) => {
   try {
-    const { sheetUrl } = req.body;
-    if (!sheetUrl || typeof sheetUrl !== 'string') {
-      return res.status(400).json({ error: '구글 시트 링크를 입력해주세요.' });
+    const { sheetUrls, subject, key, sheetUrl, semester } = req.body;
+    const errors: Record<string, string> = {};
+
+    // 1. Single key / subject sync request: { key: '국어_1학기', sheetUrl: '...' }
+    const targetKey = key || (subject && semester ? `${subject}_${semester}` : subject);
+    if (targetKey && typeof targetKey === 'string') {
+      const url = typeof sheetUrl === 'string' ? sheetUrl.trim() : '';
+      if (!url) {
+        customVocabsByKey[targetKey] = [];
+        sheetUrlsByKey[targetKey] = '';
+      } else {
+        try {
+          const { subject: parsedSubj, semester: parsedSem } = parseSubjectSemesterKey(targetKey);
+          const result = await fetchGoogleSheetVocab(url, parsedSubj, parsedSem);
+          customVocabsByKey[targetKey] = result.items.map((it) => ({
+            ...it,
+            subject: it.subject || parsedSubj,
+            semester: it.semester || parsedSem || '1학기',
+          }));
+          sheetUrlsByKey[targetKey] = url;
+        } catch (err: any) {
+          return res.status(400).json({ error: `[${targetKey}] ${err.message}` });
+        }
+      }
+      const updatedStatus = updateSheetStatus();
+      io.emit('sheet_synced', updatedStatus);
+      return res.json({ success: true, sheetStatus: updatedStatus });
     }
 
-    const result = await fetchGoogleSheetVocab(sheetUrl);
-    activeVocabList = result.items;
+    // 2. Multiple sync request: { sheetUrls: { '국어_1학기': '...', '국어_2학기': '...', ... } }
+    if (sheetUrls && typeof sheetUrls === 'object') {
+      const targetKeys = Object.keys(sheetUrls);
 
-    const subjects = ['전체', ...Object.keys(result.subjectCounts)];
-    sheetStatus = {
-      isCustomSheet: true,
-      sheetUrl,
-      lastSyncedAt: new Date().toISOString(),
-      wordCount: result.items.length,
-      subjectCounts: result.subjectCounts,
-      availableSubjects: Array.from(new Set(subjects)),
-    };
+      for (const k of targetKeys) {
+        const rawUrl = sheetUrls[k];
+        const url = typeof rawUrl === 'string' ? rawUrl.trim() : '';
 
-    io.emit('sheet_synced', sheetStatus);
-    res.json({ success: true, sheetStatus });
+        if (!url) {
+          customVocabsByKey[k] = [];
+          sheetUrlsByKey[k] = '';
+          continue;
+        }
+
+        try {
+          const { subject: parsedSubj, semester: parsedSem } = parseSubjectSemesterKey(k);
+          const result = await fetchGoogleSheetVocab(url, parsedSubj, parsedSem);
+          customVocabsByKey[k] = result.items.map((it) => ({
+            ...it,
+            subject: it.subject || parsedSubj,
+            semester: it.semester || parsedSem || '1학기',
+          }));
+          sheetUrlsByKey[k] = url;
+        } catch (err: any) {
+          errors[k] = err.message || '시트를 불러오지 못했습니다.';
+        }
+      }
+
+      const updatedStatus = updateSheetStatus();
+      io.emit('sheet_synced', updatedStatus);
+
+      const nonEmptyUrls = Object.entries(sheetUrls).filter(
+        ([_, u]) => Boolean(u && typeof u === 'string' && u.trim())
+      );
+
+      if (nonEmptyUrls.length > 0 && Object.keys(errors).length === nonEmptyUrls.length) {
+        const errorDetails = Object.entries(errors)
+          .map(([s, msg]) => `• [${s}] ${msg}`)
+          .join('\n');
+        return res.status(400).json({ error: errorDetails, errors });
+      }
+
+      return res.json({
+        success: true,
+        sheetStatus: updatedStatus,
+        errors: Object.keys(errors).length > 0 ? errors : undefined,
+      });
+    }
+
+    // 3. Fallback single sheetUrl (unified sheet)
+    if (sheetUrl && typeof sheetUrl === 'string' && sheetUrl.trim()) {
+      const result = await fetchGoogleSheetVocab(sheetUrl.trim());
+      for (const s of ['국어', '수학', '사회', '영어']) {
+        const matching1 = result.items.filter((it) => it.subject === s && it.semester === '1학기');
+        const matching2 = result.items.filter((it) => it.subject === s && it.semester === '2학기');
+        if (matching1.length > 0) {
+          customVocabsByKey[`${s}_1학기`] = matching1;
+        }
+        if (matching2.length > 0) {
+          customVocabsByKey[`${s}_2학기`] = matching2;
+        }
+        if (matching1.length === 0 && matching2.length === 0) {
+          const matchingAll = result.items.filter((it) => it.subject === s);
+          if (matchingAll.length > 0) {
+            customVocabsByKey[s] = matchingAll;
+          }
+        }
+      }
+      sheetUrlsByKey['국어_1학기'] = sheetUrl.trim();
+      const updatedStatus = updateSheetStatus();
+      io.emit('sheet_synced', updatedStatus);
+      return res.json({ success: true, sheetStatus: updatedStatus });
+    }
+
+    return res.status(400).json({ error: '연동할 구글 시트 링크를 입력해주세요.' });
   } catch (err: any) {
     console.error('Failed to sync sheet:', err);
     res.status(400).json({ error: err.message || '구글 시트를 불러오지 못했습니다.' });
@@ -516,18 +718,28 @@ app.post('/api/sheet/sync', async (req, res) => {
 });
 
 app.post('/api/sheet/reset', (req, res) => {
-  activeVocabList = [...VOCAB_DATA];
-  sheetStatus = {
-    isCustomSheet: false,
-    sheetUrl: '',
-    lastSyncedAt: null,
-    wordCount: VOCAB_DATA.length,
-    subjectCounts: getSubjectCounts(VOCAB_DATA),
-    availableSubjects: ['전체', '국어', '수학', '사회', '영어', '과학'],
-  };
+  const { key, subject } = req.body || {};
 
-  io.emit('sheet_synced', sheetStatus);
-  res.json({ success: true, sheetStatus });
+  if (key && typeof key === 'string') {
+    customVocabsByKey[key] = [];
+    sheetUrlsByKey[key] = '';
+  } else if (subject && typeof subject === 'string') {
+    delete customVocabsByKey[subject];
+    delete sheetUrlsByKey[subject];
+    delete customVocabsByKey[`${subject}_1학기`];
+    delete sheetUrlsByKey[`${subject}_1학기`];
+    delete customVocabsByKey[`${subject}_2학기`];
+    delete sheetUrlsByKey[`${subject}_2학기`];
+  } else {
+    for (const k of Object.keys(customVocabsByKey)) {
+      customVocabsByKey[k] = [];
+      sheetUrlsByKey[k] = '';
+    }
+  }
+
+  const updatedStatus = updateSheetStatus();
+  io.emit('sheet_synced', updatedStatus);
+  res.json({ success: true, sheetStatus: updatedStatus });
 });
 
 app.get('/api/room/:code', (req, res) => {

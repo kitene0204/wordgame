@@ -14,7 +14,7 @@ import { LeaderboardScreen } from './components/LeaderboardScreen';
 import { GameOverScreen } from './components/GameOverScreen';
 import { SoloQuizScreen } from './components/SoloQuizScreen';
 import { GoogleSheetModal } from './components/GoogleSheetModal';
-import { RoomState, SubjectType, SheetSyncStatus } from './types';
+import { RoomState, SubjectType, SemesterType, SheetSyncStatus } from './types';
 import {
   getSocket,
   createRoom,
@@ -26,14 +26,19 @@ import {
   nextQuestion,
   restartGame,
 } from './services/socketService';
-import { fetchSheetStatus, syncGoogleSheet, resetGoogleSheet } from './services/sheetService';
+import {
+  fetchSheetStatus,
+  syncMultipleGoogleSheets,
+  syncSingleSubjectSheet,
+  resetGoogleSheet,
+} from './services/sheetService';
 
 export default function App() {
   const [initialRoomCode, setInitialRoomCode] = useState<string>('');
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string>('');
   const [timeRemaining, setTimeRemaining] = useState<number>(15);
-  const [soloConfig, setSoloConfig] = useState<{ subject: SubjectType; numQuestions: number } | null>(null);
+  const [soloConfig, setSoloConfig] = useState<{ subject: SubjectType; numQuestions: number; semester?: SemesterType } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Google Sheet Integration State
@@ -116,13 +121,14 @@ export default function App() {
     avatar: string,
     subject: SubjectType,
     numQuestions: number,
-    timeLimitSec: number
+    timeLimitSec: number,
+    semester: SemesterType
   ) => {
-    createRoom(hostName, avatar, subject, numQuestions, timeLimitSec);
+    createRoom(hostName, avatar, subject, numQuestions, timeLimitSec, semester);
   };
 
-  const handleStartSolo = (subject: SubjectType, numQuestions: number) => {
-    setSoloConfig({ subject, numQuestions });
+  const handleStartSolo = (subject: SubjectType, numQuestions: number, semester: SemesterType) => {
+    setSoloConfig({ subject, numQuestions, semester });
   };
 
   const handleGoHome = () => {
@@ -135,20 +141,31 @@ export default function App() {
   };
 
   // Google Sheet handlers
-  const handleSyncSheet = async (url: string) => {
+  const handleSyncMultipleSheets = async (sheetUrls: Record<string, string>) => {
     setIsSheetLoading(true);
     try {
-      const updatedStatus = await syncGoogleSheet(url);
+      const res = await syncMultipleGoogleSheets(sheetUrls);
+      setSheetStatus(res.sheetStatus);
+      return { errors: res.errors };
+    } finally {
+      setIsSheetLoading(false);
+    }
+  };
+
+  const handleSyncSingleSubject = async (subject: string, url: string) => {
+    setIsSheetLoading(true);
+    try {
+      const updatedStatus = await syncSingleSubjectSheet(subject, url);
       setSheetStatus(updatedStatus);
     } finally {
       setIsSheetLoading(false);
     }
   };
 
-  const handleResetSheet = async () => {
+  const handleResetSheet = async (subject?: string) => {
     setIsSheetLoading(true);
     try {
-      const updatedStatus = await resetGoogleSheet();
+      const updatedStatus = await resetGoogleSheet(subject);
       setSheetStatus(updatedStatus);
     } finally {
       setIsSheetLoading(false);
@@ -176,6 +193,7 @@ export default function App() {
         {soloConfig && !inMultiplayer && (
           <SoloQuizScreen
             subject={soloConfig.subject}
+            semester={soloConfig.semester}
             numQuestions={soloConfig.numQuestions}
             onGoHome={handleGoHome}
           />
@@ -191,6 +209,7 @@ export default function App() {
                   roomCode={roomState.roomCode}
                   players={roomState.players}
                   subject={roomState.subject}
+                  semester={roomState.semester || '전체'}
                   numQuestions={roomState.numQuestions}
                   timeLimitSec={roomState.timeLimitSec}
                   onUpdateSettings={updateRoomSettings}
@@ -204,6 +223,7 @@ export default function App() {
                   myPlayerId={myPlayerId}
                   players={roomState.players}
                   subject={roomState.subject}
+                  semester={roomState.semester || '전체'}
                   numQuestions={roomState.numQuestions}
                 />
               ))}
@@ -301,7 +321,8 @@ export default function App() {
         isOpen={isSheetModalOpen}
         onClose={() => setIsSheetModalOpen(false)}
         sheetStatus={sheetStatus}
-        onSync={handleSyncSheet}
+        onSyncMultiple={handleSyncMultipleSheets}
+        onSyncSingle={handleSyncSingleSubject}
         onReset={handleResetSheet}
         isLoading={isSheetLoading}
       />

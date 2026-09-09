@@ -1,12 +1,13 @@
 import React from 'react';
 import { Users, Sparkles, CheckCircle2, Clock, Lightbulb } from 'lucide-react';
-import { Player, SubjectType } from '../types';
+import { Player, SubjectType, SemesterType } from '../types';
 
 interface StudentLobbyProps {
   roomCode: string;
   myPlayerId: string;
   players: Record<string, Player>;
   subject: SubjectType;
+  semester?: SemesterType;
   numQuestions: number;
 }
 
@@ -15,6 +16,7 @@ export const StudentLobby: React.FC<StudentLobbyProps> = ({
   myPlayerId,
   players,
   subject,
+  semester = '전체',
   numQuestions,
 }) => {
   const myPlayer = players[myPlayerId];
@@ -49,7 +51,7 @@ export const StudentLobby: React.FC<StudentLobbyProps> = ({
               선생님이 퀴즈를 시작하길 기다리고 있어요...
             </div>
             <p className="text-xs text-slate-400 mt-2">
-              과목: <strong className="text-slate-600">{subject}</strong> • 총 <strong className="text-slate-600">{numQuestions}문제</strong>
+              과목: <strong className="text-slate-600">{subject}</strong> • 학기: <strong className="text-slate-600">{semester === '전체' ? '1·2학기 통합' : semester}</strong> • 총 <strong className="text-slate-600">{numQuestions}문제</strong>
             </p>
           </div>
         </div>
