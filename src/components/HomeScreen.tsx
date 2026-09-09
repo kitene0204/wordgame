@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Play, Sparkles, BookOpen, Clock, Settings, HelpCircle, Trophy, Flame, FileSpreadsheet } from 'lucide-react';
+import { Users, UserPlus, Play, Sparkles, BookOpen, Clock, Settings, Trophy, Flame, FileSpreadsheet } from 'lucide-react';
 import { SubjectType, SemesterType, SheetSyncStatus } from '../types';
 import { playSound } from '../utils/audio';
 
@@ -537,15 +537,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </button>
             </div>
           )}
-        </div>
-
-        {/* Helpful Info Note for Teacher */}
-        <div className="bg-sky-50/80 px-6 py-4 border-t-2 border-sky-100 flex items-start gap-2.5 text-xs text-sky-800">
-          <HelpCircle size={18} className="text-sky-600 shrink-0 mt-0.5" />
-          <p className="leading-normal">
-            <strong>슈파베이스(Supabase) 설치가 필요한가요?</strong><br />
-            아닙니다! 본 앱은 <strong>내장된 실시간 웹소켓 서버</strong>로 동작하므로 별도의 외부 데이터베이스나 유료 가입 없이도, 링크나 6자리 코드만으로 반 아이들 30명 이상이 동시에 즉시 접속해 실시간 퀴즈와 순위표를 즐길 수 있습니다.
-          </p>
         </div>
       </div>
     </div>
